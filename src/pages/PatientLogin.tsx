@@ -3,53 +3,55 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import FingerprintScanner from "@/components/FingerprintScanner";
 import { KeyRound, Sparkles } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { getPatientById, getPatientByPhone } from "@/lib/apiHelpers";
 import { toast } from "sonner";
-
-const DEMO_EMAIL = "demo@healthkey.in";
-const DEMO_PASSWORD = "demo123456";
 
 export default function PatientLogin() {
   const navigate = useNavigate();
-  const { signIn, user } = useAuth();
   const [loginId, setLoginId] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [bioSuccess, setBioSuccess] = useState(false);
 
   // If already logged in, redirect
-  if (user) {
+  const existing = localStorage.getItem("healthkey_patient");
+  if (existing) {
     navigate("/patient/dashboard", { replace: true });
     return null;
   }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    const input = loginId.trim();
+    if (!input) return;
+
     setLoading(true);
+    try {
+      let patient: any;
+      if (input.startsWith("HK-")) {
+        patient = await getPatientById(input);
+      } else {
+        patient = await getPatientByPhone(input);
+      }
 
-    // Use email directly or treat HealthKey ID login
-    const email = loginId.includes("@") ? loginId : loginId; // For now, require email
-    if (!loginId.includes("@")) {
-      toast.error("Please use your registered email to login");
-      setLoading(false);
-      return;
-    }
-
-    const { error } = await signIn(email, password);
-    if (error) {
-      toast.error(error.message);
-    } else {
+      localStorage.setItem("healthkey_patient", JSON.stringify(patient));
+      localStorage.setItem("healthkey_patient_id", patient.healthKeyId || patient.healthkey_id || input);
       toast.success("Welcome back!");
       navigate("/patient/dashboard");
+    } catch (err: any) {
+      if (err.message === "NOT_FOUND") {
+        toast.error("No account found. Please check your HealthKey ID or phone number.");
+      } else {
+        toast.error(err.message || "Login failed. Please try again.");
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleTryDemo = () => {
-    setLoginId(DEMO_EMAIL);
-    setPassword(DEMO_PASSWORD);
-    toast.info("Demo credentials filled! Click Login to continue.");
+    setLoginId("HK-2847-NKGP");
+    toast.info("Demo HealthKey ID filled! Click Login to continue.");
   };
 
   const handleBioLogin = () => {
@@ -57,7 +59,7 @@ export default function PatientLogin() {
     setTimeout(() => {
       setScanning(false);
       setBioSuccess(true);
-      toast.info("Biometric login is simulated. Please use email & password.");
+      toast.info("Biometric login is simulated. Please use your HealthKey ID or phone number.");
     }, 2000);
   };
 
@@ -77,22 +79,19 @@ export default function PatientLogin() {
           <form onSubmit={handleLogin} className="space-y-4">
             <input
               className="input-field"
-              placeholder="HealthKey ID or Email"
+              placeholder="Enter your HealthKey ID or registered phone number"
               type="text"
               value={loginId}
               onChange={(e) => setLoginId(e.target.value)}
               required
             />
-            <input
-              className="input-field"
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
             <button type="submit" className="btn-primary w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Login"}
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                  Looking up your account...
+                </span>
+              ) : "Login"}
             </button>
           </form>
 

@@ -38,7 +38,7 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: P
   const [editName, setEditName] = useState("");
   const [viewingDoc, setViewingDoc] = useState<DocumentDisplay | null>(null);
 
-  const simulateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -49,7 +49,6 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: P
     setTimeout(() => {
       setUploadingDoc(false);
       onAdd(file.name, file);
-      toast.success("Document processed successfully");
     }, 7000);
     e.target.value = "";
   };
@@ -68,13 +67,25 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: P
     toast.success("Document renamed");
   };
 
+  // Format language display
+  const formatLang = (lang: string) => {
+    if (!lang || lang === "English" || lang === "en") return "English";
+    const langMap: Record<string, string> = {
+      mr: "Marathi", hi: "Hindi", ta: "Tamil", te: "Telugu",
+      Marathi: "Marathi", Hindi: "Hindi", Tamil: "Tamil", Telugu: "Telugu",
+    };
+    const displayLang = langMap[lang] || lang;
+    if (displayLang !== "English") return `${displayLang} → English`;
+    return displayLang;
+  };
+
   return (
     <div className="max-w-4xl space-y-6 animate-fade-up">
       <div className="flex items-center justify-between">
         <h2 className="section-title text-xl">My Documents</h2>
         <label className="btn-primary text-sm py-2 cursor-pointer">
           <Upload className="h-4 w-4 inline mr-2" /> Upload
-          <input type="file" className="hidden" onChange={simulateUpload} accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
+          <input type="file" className="hidden" onChange={handleUpload} accept=".pdf" />
         </label>
       </div>
 
@@ -85,7 +96,7 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: P
             { step: 1, text: "Extracting text with Amazon Textract..." },
             { step: 2, text: "Translating with Amazon Translate..." },
             { step: 3, text: "Extracting critical info with Amazon Bedrock..." },
-            { step: 4, text: "✓ Done — Detected: Marathi → Translated to English" },
+            { step: 4, text: "✓ Done — Document processed successfully" },
           ].map(s => (
             <div key={s.step} className={`flex items-center gap-3 py-2 text-sm transition-all ${uploadStep >= s.step ? "text-foreground" : "text-muted-foreground/30"}`}>
               {uploadStep >= s.step ? <span className="text-primary">✓</span> : <span className="w-4 h-4 rounded-full border border-border animate-pulse" />}
@@ -112,8 +123,11 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: P
                   </div>
                 ) : (
                   <>
-                    <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">{doc.name}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{doc.date} · {doc.lang}</p>
+                    <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">📄 {doc.name}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-muted-foreground">{doc.date}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">{formatLang(doc.lang)}</span>
+                    </div>
                   </>
                 )}
               </div>
