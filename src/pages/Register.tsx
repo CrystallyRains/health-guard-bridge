@@ -5,12 +5,17 @@ import TagInput from "@/components/TagInput";
 import FingerprintScanner from "@/components/FingerprintScanner";
 import { indianStates, bloodGroups } from "@/data/mockData";
 import { Copy, Check, Plus, X } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { createPatient, generateHealthKeyId } from "@/lib/api";
+import { toast } from "sonner";
 
 export default function Register() {
   const navigate = useNavigate();
+  const { signUp, signIn } = useAuth();
   const [step, setStep] = useState(1);
   const [healthKeyId, setHealthKeyId] = useState("");
   const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // Step 1
   const [name, setName] = useState("");
@@ -18,6 +23,7 @@ export default function Register() {
   const [gender, setGender] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [blood, setBlood] = useState("");
   const [state, setState] = useState("");
 
@@ -26,23 +32,16 @@ export default function Register() {
   const [medications, setMedications] = useState<string[]>([]);
   const [conditions, setConditions] = useState<string[]>([]);
   const [surgeries, setSurgeries] = useState<{ name: string; date: string }[]>([]);
-  const [contacts, setContacts] = useState<{ name: string; phone: string }[]>([{ name: "", phone: "" }]);
+  const [contacts, setContacts] = useState<{ name: string; relation: string; phone: string }[]>([{ name: "", relation: "", phone: "" }]);
   const [toggles, setToggles] = useState({ allergies: true, medications: true, conditions: true, surgeries: true });
 
   // Step 3
   const [scanning, setScanning] = useState(false);
   const [bioSuccess, setBioSuccess] = useState(false);
 
-  const generateId = () => {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const nums = "0123456789";
-    const r = (s: string, n: number) => Array.from({ length: n }, () => s[Math.floor(Math.random() * s.length)]).join("");
-    return `HK-${r(nums, 4)}-${r(chars, 4)}`;
-  };
-
   const handleStep1 = (e: React.FormEvent) => {
     e.preventDefault();
-    const id = generateId();
+    const id = generateHealthKeyId();
     setHealthKeyId(id);
     setStep(2);
   };
@@ -53,12 +52,62 @@ export default function Register() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleScan = () => {
+  const handleScan = async () => {
     setScanning(true);
-    setTimeout(() => {
+    setLoading(true);
+
+    try {
+      // Create auth user
+      const { user, error: signUpError } = await signUp(email, password);
+      if (signUpError || !user) {
+        toast.error(signUpError?.message || "Registration failed");
+        setScanning(false);
+        setLoading(false);
+        return;
+      }
+
+      // Sign in immediately
+      const { error: signInError } = await signIn(email, password);
+      if (signInError) {
+        toast.error(signInError.message);
+        setScanning(false);
+        setLoading(false);
+        return;
+      }
+
+      // Create patient record
+      const { error: patientError } = await createPatient(user.id, {
+        healthkey_id: healthKeyId,
+        name,
+        age: Number(age),
+        gender,
+        phone,
+        email,
+        blood,
+        state,
+        allergies,
+        medications,
+        conditions,
+        surgeries: surgeries.filter(s => s.name.trim()),
+        emergency_contacts: contacts.filter(c => c.name.trim()),
+        privacy_toggles: toggles,
+      });
+
+      if (patientError) {
+        toast.error("Failed to save patient data: " + patientError.message);
+        setScanning(false);
+        setLoading(false);
+        return;
+      }
+
       setScanning(false);
       setBioSuccess(true);
-    }, 2000);
+      toast.success("Registration complete!");
+    } catch (err: any) {
+      toast.error(err.message || "An error occurred");
+      setScanning(false);
+      setLoading(false);
+    }
   };
 
   return (
@@ -106,6 +155,7 @@ export default function Register() {
             </div>
             <input className="input-field" placeholder="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} required />
             <input className="input-field" placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <input className="input-field" placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
             <div className="grid grid-cols-2 gap-4">
               <select className="select-field" value={blood} onChange={(e) => setBlood(e.target.value)} required>
                 <option value="">Blood Group</option>
@@ -178,12 +228,13 @@ export default function Register() {
               {contacts.map((c, i) => (
                 <div key={i} className="flex gap-2 mb-2">
                   <input className="input-field flex-1 text-sm" placeholder="Name" value={c.name} onChange={(e) => { const arr = [...contacts]; arr[i].name = e.target.value; setContacts(arr); }} />
+                  <input className="input-field w-28 text-sm" placeholder="Relation" value={c.relation} onChange={(e) => { const arr = [...contacts]; arr[i].relation = e.target.value; setContacts(arr); }} />
                   <input className="input-field w-40 text-sm" placeholder="Phone" value={c.phone} onChange={(e) => { const arr = [...contacts]; arr[i].phone = e.target.value; setContacts(arr); }} />
                   {contacts.length > 1 && <button type="button" onClick={() => setContacts(contacts.filter((_, j) => j !== i))} className="text-muted-foreground hover:text-destructive"><X className="h-4 w-4" /></button>}
                 </div>
               ))}
               {contacts.length < 3 && (
-                <button type="button" onClick={() => setContacts([...contacts, { name: "", phone: "" }])} className="text-primary text-sm flex items-center gap-1 hover:underline">
+                <button type="button" onClick={() => setContacts([...contacts, { name: "", relation: "", phone: "" }])} className="text-primary text-sm flex items-center gap-1 hover:underline">
                   <Plus className="h-3 w-3" /> Add contact
                 </button>
               )}
@@ -198,6 +249,9 @@ export default function Register() {
             <h2 className="section-title text-xl">Biometric Setup</h2>
             <p className="text-muted-foreground text-sm">Simulated fingerprint registration for emergency identification</p>
             <FingerprintScanner scanning={scanning} success={bioSuccess} onScan={handleScan} />
+            {loading && !bioSuccess && !scanning && (
+              <p className="text-sm text-muted-foreground">Creating your account...</p>
+            )}
             {bioSuccess && (
               <button onClick={() => navigate("/patient/dashboard")} className="btn-primary w-full animate-fade-up">
                 Go to Dashboard

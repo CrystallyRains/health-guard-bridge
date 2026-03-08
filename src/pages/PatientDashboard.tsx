@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { mockPatient, mockAuditLog } from "@/data/mockData";
+import { useAuth } from "@/hooks/useAuth";
+import { getPatientByUserId, getDocuments, getAuditLogs, updatePatient, createDocument, updateDocument, deleteDocument, deletePatient } from "@/lib/api";
+import type { PatientRecord, DocumentRecord, AuditLogRecord } from "@/lib/api";
 import { KeyRound, LogOut, Heart, FileText, Search, Settings } from "lucide-react";
 import ProfileTab from "@/components/dashboard/ProfileTab";
-import DocumentsTab, { type Document } from "@/components/dashboard/DocumentsTab";
+import DocumentsTab from "@/components/dashboard/DocumentsTab";
 import AccessLogTab from "@/components/dashboard/AccessLogTab";
 import SettingsTab from "@/components/dashboard/SettingsTab";
 import { toast } from "sonner";
@@ -12,9 +14,91 @@ type Tab = "profile" | "documents" | "access" | "settings";
 
 export default function PatientDashboard() {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const [tab, setTab] = useState<Tab>("profile");
-  const [patient, setPatient] = useState(mockPatient);
-  const [documents, setDocuments] = useState<Document[]>(mockPatient.documents);
+  const [patient, setPatient] = useState<PatientRecord | null>(null);
+  const [documents, setDocuments] = useState<DocumentRecord[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    loadData();
+  }, [user]);
+
+  const loadData = async () => {
+    if (!user) return;
+    setLoading(true);
+    const { patient: p } = await getPatientByUserId(user.id);
+    if (p) {
+      setPatient(p);
+      const [docsResult, logsResult] = await Promise.all([
+        getDocuments(p.id),
+        getAuditLogs(p.id),
+      ]);
+      setDocuments(docsResult.documents);
+      setAuditLogs(logsResult.logs);
+    }
+    setLoading(false);
+  };
+
+  const handleUpdatePatient = async (updates: Partial<PatientRecord>) => {
+    if (!patient) return;
+    const { patient: updated, error } = await updatePatient(patient.id, updates);
+    if (error) {
+      toast.error("Failed to update: " + error.message);
+      return;
+    }
+    if (updated) setPatient(updated);
+  };
+
+  const handleAddDocument = async (name: string) => {
+    if (!patient || !user) return;
+    const { document: doc, error } = await createDocument({
+      patient_id: patient.id,
+      user_id: user.id,
+      name,
+      upload_date: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
+      status: "Processed",
+      lang: "English",
+    });
+    if (error) {
+      toast.error("Failed to add document");
+      return;
+    }
+    if (doc) setDocuments(prev => [doc, ...prev]);
+  };
+
+  const handleUpdateDocument = async (docId: string, updates: Partial<DocumentRecord>) => {
+    const { document: doc, error } = await updateDocument(docId, updates);
+    if (error) {
+      toast.error("Failed to update document");
+      return;
+    }
+    if (doc) setDocuments(prev => prev.map(d => d.id === docId ? doc : d));
+  };
+
+  const handleDeleteDocument = async (docId: string) => {
+    const { error } = await deleteDocument(docId);
+    if (error) {
+      toast.error("Failed to delete document");
+      return;
+    }
+    setDocuments(prev => prev.filter(d => d.id !== docId));
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!patient) return;
+    await deletePatient(patient.id);
+    await signOut();
+    toast.success("Account deleted");
+    navigate("/");
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   const tabs: { key: Tab; icon: typeof Heart; label: string }[] = [
     { key: "profile", icon: Heart, label: "Health Profile" },
@@ -23,14 +107,65 @@ export default function PatientDashboard() {
     { key: "settings", icon: Settings, label: "Settings" },
   ];
 
-  const handleDeleteAccount = () => {
-    toast.success("Account deleted (simulated)");
-    navigate("/");
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-muted-foreground text-sm">Loading your records...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!patient) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4 glass-card p-8">
+          <p className="text-muted-foreground">No patient profile found.</p>
+          <button onClick={() => navigate("/register")} className="btn-primary">Complete Registration</button>
+        </div>
+      </div>
+    );
+  }
+
+  // Convert DB format to component format
+  const patientForProfile = {
+    id: patient.healthkey_id,
+    name: patient.name,
+    age: patient.age,
+    gender: patient.gender,
+    phone: patient.phone,
+    email: patient.email,
+    blood: patient.blood,
+    state: patient.state,
+    allergies: patient.allergies || [],
+    medications: patient.medications || [],
+    conditions: patient.conditions || [],
+    surgeries: (patient.surgeries as { name: string; date: string }[]) || [],
+    emergencyContacts: (patient.emergency_contacts as { name: string; relation: string; phone: string }[]) || [],
+    privacyToggles: (patient.privacy_toggles as { allergies: boolean; medications: boolean; conditions: boolean; surgeries: boolean }) || { allergies: true, medications: true, conditions: true, surgeries: true },
   };
+
+  const docsForTab = documents.map(d => ({
+    id: d.id,
+    name: d.name,
+    date: d.upload_date,
+    status: d.status as "Processed" | "Processing" | "Failed",
+    lang: d.lang,
+  }));
+
+  const logsForTab = auditLogs.map(l => ({
+    time: new Date(l.accessed_at).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+    doctor: l.doctor_name,
+    hospital: l.hospital,
+    purpose: l.purpose,
+    duration: l.duration,
+    status: (new Date(l.expires_at) < new Date() ? "Expired" : "Active") as "Expired" | "Active" | "Pending",
+  }));
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Top nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-border/50 h-16 flex items-center justify-between px-4 sm:px-8">
         <div className="flex items-center gap-2">
           <KeyRound className="h-5 w-5 text-primary" />
@@ -38,14 +173,13 @@ export default function PatientDashboard() {
         </div>
         <div className="flex items-center gap-4">
           <span className="text-sm text-muted-foreground hidden sm:block">{patient.name}</span>
-          <button onClick={() => navigate("/")} className="text-muted-foreground hover:text-destructive transition-colors">
+          <button onClick={handleLogout} className="text-muted-foreground hover:text-destructive transition-colors">
             <LogOut className="h-5 w-5" />
           </button>
         </div>
       </nav>
 
       <div className="flex flex-1 pt-16">
-        {/* Sidebar */}
         <aside className="hidden md:flex flex-col w-60 border-r border-border bg-card/50 p-4 gap-1">
           {tabs.map(t => (
             <button
@@ -60,7 +194,6 @@ export default function PatientDashboard() {
           ))}
         </aside>
 
-        {/* Mobile tabs */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-card border-t border-border/50 flex">
           {tabs.map(t => (
             <button
@@ -75,21 +208,48 @@ export default function PatientDashboard() {
           ))}
         </div>
 
-        {/* Content */}
         <main className="flex-1 p-4 sm:p-8 pb-24 md:pb-8 overflow-auto">
           {tab === "profile" && (
-            <ProfileTab patient={patient} onUpdate={(updated) => setPatient(prev => ({ ...prev, ...updated }))} />
+            <ProfileTab
+              patient={patientForProfile}
+              onUpdate={(updated) => {
+                handleUpdatePatient({
+                  name: updated.name,
+                  age: updated.age,
+                  gender: updated.gender,
+                  blood: updated.blood,
+                  state: updated.state,
+                  allergies: updated.allergies,
+                  medications: updated.medications,
+                  conditions: updated.conditions,
+                  surgeries: updated.surgeries as any,
+                  emergency_contacts: updated.emergencyContacts as any,
+                  privacy_toggles: updated.privacyToggles as any,
+                });
+              }}
+            />
           )}
           {tab === "documents" && (
-            <DocumentsTab documents={documents} onUpdate={setDocuments} />
+            <DocumentsTab
+              documents={docsForTab}
+              onAdd={handleAddDocument}
+              onUpdate={(docId, updates) => handleUpdateDocument(docId, updates)}
+              onDelete={handleDeleteDocument}
+            />
           )}
           {tab === "access" && (
-            <AccessLogTab auditLog={mockAuditLog} patient={patient} />
+            <AccessLogTab auditLog={logsForTab} patient={patientForProfile} />
           )}
           {tab === "settings" && (
             <SettingsTab
-              patient={patient}
-              onUpdate={updates => setPatient(prev => ({ ...prev, ...updates }))}
+              patient={patientForProfile}
+              onUpdate={(updates) => {
+                const dbUpdates: Partial<PatientRecord> = {};
+                if (updates.phone) dbUpdates.phone = updates.phone;
+                if (updates.email) dbUpdates.email = updates.email;
+                if (updates.emergencyContacts) dbUpdates.emergency_contacts = updates.emergencyContacts as any;
+                handleUpdatePatient(dbUpdates);
+              }}
               onDelete={handleDeleteAccount}
             />
           )}
