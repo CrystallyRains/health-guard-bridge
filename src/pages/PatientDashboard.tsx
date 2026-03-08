@@ -172,6 +172,8 @@ export default function PatientDashboard() {
     date: d.upload_date,
     status: d.status as "Processed" | "Processing" | "Failed",
     lang: d.lang,
+    filePath: d.file_path,
+    fileType: d.file_type,
   }));
 
   const logsForTab = auditLogs.map(l => ({
