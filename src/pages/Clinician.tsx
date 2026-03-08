@@ -101,8 +101,8 @@ export default function Clinician() {
       setEnglishSummary(response.summary);
       setLang("EN");
 
-      // Fetch patient documents
-      fetchPatientDocuments(reqData.healthKeyId);
+
+
 
       const expiresAt = new Date(response.expiresAt).getTime();
       const now = Date.now();
