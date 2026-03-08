@@ -69,7 +69,7 @@ export default function Clinician() {
   const [responseData, setResponseData] = useState<SummaryResponse | null>(null);
   const [requestData, setRequestData] = useState<{ healthKeyId: string; doctorName: string; hospitalName: string; purpose: string } | null>(null);
   const [englishSummary, setEnglishSummary] = useState<SummaryResponse["summary"] | null>(null);
-  const [patientDocs, setPatientDocs] = useState<PatientDocument[]>([]);
+  
 
   const [verifyStep, setVerifyStep] = useState(0);
   const [lang, setLang] = useState("EN");
