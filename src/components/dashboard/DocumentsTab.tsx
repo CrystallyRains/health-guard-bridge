@@ -106,7 +106,7 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: P
                 )}
               </div>
               <div className="flex items-center gap-2 ml-3">
-                <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 font-medium">✓ Uploaded</span>
+                <span className="tag-success text-xs">✓ Uploaded</span>
                 <button onClick={() => setViewingDoc(doc)} className="text-muted-foreground hover:text-primary p-1" title="View"><Eye className="h-3.5 w-3.5" /></button>
                 <button onClick={() => startRename(i)} className="text-muted-foreground hover:text-primary p-1" title="Rename"><Pencil className="h-3.5 w-3.5" /></button>
                 <AlertDialog>
