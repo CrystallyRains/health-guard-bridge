@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { clinicianTranslations } from "@/data/mockData";
 import { requestEmergencyAccess } from "@/lib/apiHelpers";
+import { api } from "@/config/api";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FingerprintScanner from "@/components/FingerprintScanner";
@@ -123,12 +124,40 @@ export default function Clinician() {
     if (!requestData) return;
     setTranslating(true);
     try {
-      const response = await requestEmergencyAccess({
-        ...requestData,
-        preferredLang: newLang,
+      // Call API directly to ensure we get the full translated response
+      const res = await fetch(api.emergencyAccess, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...requestData,
+          preferredLang: newLang,
+        }),
       });
-      setResponseData((prev) => prev ? { ...prev, summary: response.summary } : prev);
+      if (!res.ok) throw new Error("Translation request failed");
+      const data = await res.json();
+      console.log("[LangSwitch] API response for", newLang, ":", JSON.stringify(data.summary, null, 2));
+
+      // Update ALL summary fields from the fresh translated response
+      setResponseData((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          summary: {
+            criticalAlert: data.summary?.criticalAlert ?? prev.summary.criticalAlert,
+            allergies: data.summary?.allergies ?? prev.summary.allergies,
+            medications: data.summary?.medications ?? prev.summary.medications,
+            conditions: data.summary?.conditions ?? prev.summary.conditions,
+            surgeries: data.summary?.surgeries ?? prev.summary.surgeries,
+            bloodGroup: data.summary?.bloodGroup ?? prev.summary.bloodGroup,
+            emergencyNotes: data.summary?.emergencyNotes ?? prev.summary.emergencyNotes,
+            dataSources: data.summary?.dataSources ?? prev.summary.dataSources,
+            drugContraindications: data.summary?.drugContraindications ?? prev.summary.drugContraindications,
+            labHighlights: data.summary?.labHighlights ?? prev.summary.labHighlights,
+          },
+        };
+      });
     } catch (err: any) {
+      console.error("[LangSwitch] Failed:", err);
       toast.error("Translation failed. Showing English.");
       setLang("EN");
       if (englishSummary) {
