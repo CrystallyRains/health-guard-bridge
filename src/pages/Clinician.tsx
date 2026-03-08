@@ -295,6 +295,42 @@ export default function Clinician() {
                 ? <p className="text-sm">{summary.emergencyNotes}</p>
                 : <span className="text-muted-foreground text-sm">None recorded</span>}
             </div>
+
+            {/* Drug Contraindications */}
+            {summary.drugContraindications && summary.drugContraindications !== "Not available" && (
+              Array.isArray(summary.drugContraindications) ? summary.drugContraindications.length > 0 : true
+            ) && (
+              <div className="glass-card p-5 border-red-500/40 md:col-span-2">
+                <h3 className="font-heading font-semibold text-sm mb-3 text-red-400">💊 DRUGS TO AVOID</h3>
+                {Array.isArray(summary.drugContraindications) ? (
+                  <div className="flex flex-wrap gap-2">
+                    {summary.drugContraindications.map((d: string) => (
+                      <span key={d} className="tag-allergy text-base">{d}</span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm">{summary.drugContraindications}</p>
+                )}
+              </div>
+            )}
+
+            {/* Lab Highlights */}
+            {summary.labHighlights && summary.labHighlights !== "Not available" && (
+              Array.isArray(summary.labHighlights) ? summary.labHighlights.length > 0 : true
+            ) && (
+              <div className="glass-card p-5 border-purple-500/40 md:col-span-2">
+                <h3 className="font-heading font-semibold text-sm mb-3 text-purple-400">🧪 RECENT LAB VALUES</h3>
+                {Array.isArray(summary.labHighlights) ? (
+                  <ul className="space-y-1">
+                    {summary.labHighlights.map((l: string, i: number) => (
+                      <li key={i} className="text-sm">{l}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm">{summary.labHighlights}</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Data Sources */}
