@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { clinicianTranslations } from "@/data/mockData";
-import { getPatientByHealthKeyId, createAuditLog } from "@/lib/api";
-import type { PatientRecord } from "@/lib/api";
+import { getPatientByHealthKeyId, createAuditLog, getDocuments } from "@/lib/api";
+import type { PatientRecord, DocumentRecord } from "@/lib/api";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FingerprintScanner from "@/components/FingerprintScanner";
-import { Lock, AlertTriangle, LogOut } from "lucide-react";
+import DocumentViewer from "@/components/DocumentViewer";
+import { Lock, AlertTriangle, LogOut, FileText, Eye } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
