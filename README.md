@@ -35,6 +35,7 @@ HealthKey is a **patient-controlled, AI-powered emergency medical access layer**
 ## 🏗️ Architecture
 
 ```
+<img width="1200" height="500" alt="HealthKey_ProcessFlow" src="https://github.com/user-attachments/assets/68be04ca-09ca-412b-9887-3a67880b4af1" />
 HealthKey Web App (React + TypeScript · AWS Amplify)
            ↓
    Amazon API Gateway (HTTP API · 6 routes)
@@ -99,12 +100,12 @@ Amazon S3    AI Pipeline:
 
 ## 🚀 How to Test the Live Demo
 
-### Step 1 — Open the App
+### Step 1: Open the App
 Visit 👉 **[https://main.d3815zbuat35tz.amplifyapp.com](https://main.d3815zbuat35tz.amplifyapp.com)**
 
 ---
 
-### Step 2 — Register a Patient
+### Step 2: Register a Patient
 
 1. Click **"Register as Patient"**
 2. Fill in the details:
@@ -117,7 +118,7 @@ Visit 👉 **[https://main.d3815zbuat35tz.amplifyapp.com](https://main.d3815zbua
 
 ---
 
-### Step 3 — Upload a Medical Document
+### Step 3: Upload a Medical Document
 
 1. Log in as the patient (use phone number: `9876543210`)
 2. Go to the **Documents** tab
@@ -127,7 +128,7 @@ Visit 👉 **[https://main.d3815zbuat35tz.amplifyapp.com](https://main.d3815zbua
 
 ---
 
-### Step 4 — Test Emergency Access (Clinician View)
+### Step 4: Test Emergency Access (Clinician View)
 
 1. Click **"Clinician / Emergency Access"**
 2. Enter:
@@ -141,7 +142,7 @@ Visit 👉 **[https://main.d3815zbuat35tz.amplifyapp.com](https://main.d3815zbua
 
 ---
 
-### Step 5 — Check the Audit Log
+### Step 5: Check the Audit Log
 
 1. Log back in as the patient
 2. Go to the **Audit** tab
