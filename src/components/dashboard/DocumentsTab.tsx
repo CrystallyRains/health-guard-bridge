@@ -26,16 +26,17 @@ export interface DocumentDisplay {
 
 interface Props {
   documents: DocumentDisplay[];
+  healthKeyId: string;
   onAdd: (name: string, file?: File) => Promise<void> | void;
   onUpdate: (docId: string, updates: { name?: string }) => void;
   onDelete: (docId: string) => void;
 }
 
-export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: Props) {
+export default function DocumentsTab({ documents, healthKeyId, onAdd, onUpdate, onDelete }: Props) {
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
-  const [viewingDoc, setViewingDoc] = useState<DocumentDisplay | null>(null);
+  const [viewingDocId, setViewingDocId] = useState<string | null>(null);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
