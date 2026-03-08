@@ -6,7 +6,8 @@ import FingerprintScanner from "@/components/FingerprintScanner";
 import { indianStates, bloodGroups } from "@/data/mockData";
 import { Copy, Check, Plus, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { createPatient, generateHealthKeyId } from "@/lib/api";
+import { createPatient } from "@/lib/api";
+import { registerPatient } from "@/lib/apiHelpers";
 import { toast } from "sonner";
 
 export default function Register() {
@@ -41,8 +42,6 @@ export default function Register() {
 
   const handleStep1 = (e: React.FormEvent) => {
     e.preventDefault();
-    const id = generateHealthKeyId();
-    setHealthKeyId(id);
     setStep(2);
   };
 
@@ -57,16 +56,36 @@ export default function Register() {
     setLoading(true);
 
     try {
-      // Create auth user
+      // 1. POST to AWS API to register patient and get healthKeyId
+      const registrationData = {
+        name,
+        age: Number(age),
+        gender,
+        phone,
+        email,
+        blood,
+        state,
+        allergies,
+        medications,
+        conditions,
+        surgeries: surgeries.filter(s => s.name.trim()),
+        emergencyContacts: contacts.filter(c => c.name.trim()),
+        privacyToggles: toggles,
+      };
+
+      const { healthKeyId: generatedId } = await registerPatient(registrationData);
+      setHealthKeyId(generatedId);
+
+      // 2. Create auth user for dashboard access
       const { user, error: signUpError } = await signUp(email, password);
       if (signUpError || !user) {
-        toast.error(signUpError?.message || "Registration failed");
+        toast.error(signUpError?.message || "Auth registration failed");
         setScanning(false);
         setLoading(false);
         return;
       }
 
-      // Sign in immediately
+      // 3. Sign in immediately
       const { error: signInError } = await signIn(email, password);
       if (signInError) {
         toast.error(signInError.message);
@@ -75,9 +94,9 @@ export default function Register() {
         return;
       }
 
-      // Create patient record
+      // 4. Create patient record in database for dashboard
       const { error: patientError } = await createPatient(user.id, {
-        healthkey_id: healthKeyId,
+        healthkey_id: generatedId,
         name,
         age: Number(age),
         gender,

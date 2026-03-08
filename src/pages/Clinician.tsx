@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { clinicianTranslations } from "@/data/mockData";
-import { getPatientByHealthKeyId, createAuditLog, getDocuments } from "@/lib/api";
-import type { PatientRecord, DocumentRecord } from "@/lib/api";
+import { requestEmergencyAccess } from "@/lib/apiHelpers";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FingerprintScanner from "@/components/FingerprintScanner";
@@ -31,6 +30,20 @@ const langOptions = [
   { code: "TE", label: "TE", flag: "🟡" },
 ];
 
+interface SummaryData {
+  name: string;
+  age: number;
+  gender: string;
+  blood: string;
+  allergies: string[];
+  medications: string[];
+  conditions: string[];
+  surgeries: { name: string; date: string }[];
+  emergencyContacts: { name: string; relation: string; phone: string }[];
+  privacyToggles?: { allergies: boolean; medications: boolean; conditions: boolean; surgeries: boolean };
+  documents?: { id: string; name: string; date: string; lang: string; filePath?: string; fileType?: string }[];
+}
+
 export default function Clinician() {
   const [phase, setPhase] = useState<Phase>("form");
   const [doctorName, setDoctorName] = useState("");
@@ -40,9 +53,9 @@ export default function Clinician() {
   const [purpose, setPurpose] = useState("");
   const [scanning, setScanning] = useState(false);
   const [bioSuccess, setBioSuccess] = useState(false);
-  const [patientData, setPatientData] = useState<PatientRecord | null>(null);
-  const [patientDocs, setPatientDocs] = useState<DocumentRecord[]>([]);
-  const [viewingDoc, setViewingDoc] = useState<DocumentRecord | null>(null);
+  const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
+  const [sessionId, setSessionId] = useState("");
+  const [viewingDoc, setViewingDoc] = useState<{ id: string; name: string; date: string; lang: string; filePath?: string; fileType?: string } | null>(null);
 
   const [verifyStep, setVerifyStep] = useState(0);
   const [lang, setLang] = useState("EN");
@@ -52,35 +65,39 @@ export default function Clinician() {
   const t = clinicianTranslations[lang];
 
   const startVerification = useCallback(async () => {
-    // Fetch patient data
-    const { patient, error } = await getPatientByHealthKeyId(patientId.trim());
-    if (error || !patient) {
-      toast.error("Patient not found. Please check the HealthKey ID.");
-      return;
-    }
-    setPatientData(patient);
-
-    // Fetch patient documents
-    const { documents } = await getDocuments(patient.id);
-    setPatientDocs(documents);
     setPhase("verifying");
     setVerifyStep(0);
     setTimeout(() => setVerifyStep(1), 1500);
     setTimeout(() => setVerifyStep(2), 3000);
-    setTimeout(() => setVerifyStep(3), 5000);
-    setTimeout(() => {
-      setPhase("summary");
-      // Log the access
-      createAuditLog({
-        patient_id: patient.id,
-        doctor_name: doctorName,
-        hospital,
+
+    try {
+      const response = await requestEmergencyAccess({
+        healthKeyId: patientId.trim(),
+        doctorName,
+        hospitalName: hospital,
+        doctorLicense: doctorId,
         purpose,
-        duration: "30 min",
-        status: "Active",
+        preferredLang: lang,
       });
-    }, 6000);
-  }, [patientId, doctorName, hospital, purpose]);
+
+      setSummaryData(response.summary);
+      setSessionId(response.sessionId);
+
+      // Calculate real countdown from expiresAt
+      const expiresAt = new Date(response.expiresAt).getTime();
+      const now = Date.now();
+      const remainingSeconds = Math.max(0, Math.floor((expiresAt - now) / 1000));
+      setTimeLeft(remainingSeconds);
+
+      setTimeout(() => setVerifyStep(3), 5000);
+      setTimeout(() => {
+        setPhase("summary");
+      }, 6000);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to access patient records");
+      setPhase("form");
+    }
+  }, [patientId, doctorName, hospital, doctorId, purpose, lang]);
 
   const handleRequestAccess = (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,9 +131,10 @@ export default function Clinician() {
   const formatTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
   const timerDanger = timeLeft < 300;
 
-  const privacyToggles = patientData?.privacy_toggles as { allergies: boolean; medications: boolean; conditions: boolean; surgeries: boolean } | undefined;
-  const emergencyContacts = (patientData?.emergency_contacts ?? []) as { name: string; relation: string; phone: string }[];
-  const surgeries = (patientData?.surgeries ?? []) as { name: string; date: string }[];
+  const privacyToggles = summaryData?.privacyToggles;
+  const emergencyContacts = summaryData?.emergencyContacts ?? [];
+  const surgeries = summaryData?.surgeries ?? [];
+  const patientDocs = summaryData?.documents ?? [];
 
   if (phase === "verifying") {
     return (
@@ -135,10 +153,10 @@ export default function Clinician() {
               {s.text}
             </div>
           ))}
-          {verifyStep >= 2 && patientData && (
+          {verifyStep >= 2 && summaryData && (
             <div className="glass-card p-4 text-left text-xs text-muted-foreground mt-4 animate-fade-up">
               <p className="font-mono">SMS notification sent:</p>
-              <p className="mt-2 italic">"HealthKey Alert: {doctorName} at {hospital} has requested emergency access to {patientData.name}'s medical summary at {new Date().toLocaleTimeString()}."</p>
+              <p className="mt-2 italic">"HealthKey Alert: {doctorName} at {hospital} has requested emergency access to {summaryData.name}'s medical summary at {new Date().toLocaleTimeString()}."</p>
             </div>
           )}
         </div>
@@ -146,12 +164,12 @@ export default function Clinician() {
     );
   }
 
-  if (phase === "summary" && patientData) {
+  if (phase === "summary" && summaryData) {
     return (
       <div className="min-h-screen relative">
         <div className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-border/50 px-4 py-3">
           <div className="max-w-5xl mx-auto flex items-center justify-between">
-            <span className="font-heading font-semibold text-sm">Clinical Summary — {patientData.name}</span>
+            <span className="font-heading font-semibold text-sm">Clinical Summary — {summaryData.name}</span>
             <div className="flex items-center gap-4">
               <div className="flex gap-1">
                 {langOptions.map((l) => (
@@ -184,7 +202,7 @@ export default function Clinician() {
                   <AlertDialogFooter>
                     <AlertDialogCancel className="btn-secondary">Cancel</AlertDialogCancel>
                     <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      onClick={() => { setPhase("form"); setTimeLeft(1800); setExpired(false); setPatientData(null); }}>
+                      onClick={() => { setPhase("form"); setTimeLeft(1800); setExpired(false); setSummaryData(null); }}>
                       End Session
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -211,8 +229,8 @@ export default function Clinician() {
               <div className="glass-card p-5 border-red-500/30 md:col-span-2">
                 <h3 className="font-heading font-semibold text-sm mb-3 text-red-400">🚨 {t.allergies}</h3>
                 <div className="flex flex-wrap gap-2">
-                  {(patientData.allergies || []).map((a) => <span key={a} className="tag-allergy text-base">{a}</span>)}
-                  {(patientData.allergies || []).length === 0 && <span className="text-muted-foreground text-sm">None recorded</span>}
+                  {(summaryData.allergies || []).map((a) => <span key={a} className="tag-allergy text-base">{a}</span>)}
+                  {(summaryData.allergies || []).length === 0 && <span className="text-muted-foreground text-sm">None recorded</span>}
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-3">Source: Patient-entered</p>
               </div>
@@ -222,8 +240,8 @@ export default function Clinician() {
               <div className="glass-card p-5 border-blue-500/20">
                 <h3 className="font-heading font-semibold text-sm mb-3 text-blue-400">💊 {t.medications}</h3>
                 <ul className="space-y-1">
-                  {(patientData.medications || []).map((m) => <li key={m} className="text-sm tag-medication inline-block mr-2 mb-2">{m}</li>)}
-                  {(patientData.medications || []).length === 0 && <li className="text-muted-foreground text-sm">None recorded</li>}
+                  {(summaryData.medications || []).map((m) => <li key={m} className="text-sm tag-medication inline-block mr-2 mb-2">{m}</li>)}
+                  {(summaryData.medications || []).length === 0 && <li className="text-muted-foreground text-sm">None recorded</li>}
                 </ul>
               </div>
             )}
@@ -232,8 +250,8 @@ export default function Clinician() {
               <div className="glass-card p-5 border-amber-500/20">
                 <h3 className="font-heading font-semibold text-sm mb-3 text-amber-400">🫀 {t.conditions}</h3>
                 <div className="flex flex-wrap gap-2">
-                  {(patientData.conditions || []).map((c) => <span key={c} className="tag-condition">{c}</span>)}
-                  {(patientData.conditions || []).length === 0 && <span className="text-muted-foreground text-sm">None recorded</span>}
+                  {(summaryData.conditions || []).map((c) => <span key={c} className="tag-condition">{c}</span>)}
+                  {(summaryData.conditions || []).length === 0 && <span className="text-muted-foreground text-sm">None recorded</span>}
                 </div>
               </div>
             )}
@@ -241,7 +259,7 @@ export default function Clinician() {
             <div className="glass-card p-5 flex items-center justify-center">
               <div className="text-center">
                 <p className="text-xs text-muted-foreground mb-1">{t.bloodGroup}</p>
-                <p className="text-5xl font-heading font-bold text-red-400">{patientData.blood}</p>
+                <p className="text-5xl font-heading font-bold text-red-400">{summaryData.blood}</p>
               </div>
             </div>
 
@@ -279,7 +297,7 @@ export default function Clinician() {
                   <div key={doc.id} className="glass-card p-3 flex items-center justify-between">
                     <div className="min-w-0">
                       <p className="font-medium text-sm truncate">{doc.name}</p>
-                      <p className="text-xs text-muted-foreground">{doc.upload_date} · {doc.lang}</p>
+                      <p className="text-xs text-muted-foreground">{doc.date} · {doc.lang}</p>
                     </div>
                     <button
                       onClick={() => setViewingDoc(doc)}
@@ -304,10 +322,10 @@ export default function Clinician() {
             document={{
               id: viewingDoc.id,
               name: viewingDoc.name,
-              date: viewingDoc.upload_date,
+              date: viewingDoc.date,
               lang: viewingDoc.lang,
-              filePath: viewingDoc.file_path,
-              fileType: viewingDoc.file_type,
+              filePath: viewingDoc.filePath,
+              fileType: viewingDoc.fileType,
             }}
             onClose={() => setViewingDoc(null)}
             mode="clinician"
@@ -321,7 +339,7 @@ export default function Clinician() {
                 <Lock className="h-12 w-12 text-destructive" />
               </div>
               <h2 className="font-heading font-bold text-2xl">{t.sessionExpired}</h2>
-              <button onClick={() => { setPhase("form"); setTimeLeft(1800); setExpired(false); setPatientData(null); }} className="btn-secondary">
+              <button onClick={() => { setPhase("form"); setTimeLeft(1800); setExpired(false); setSummaryData(null); }} className="btn-secondary">
                 Back to Portal
               </button>
             </div>
