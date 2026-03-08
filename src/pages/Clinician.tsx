@@ -56,7 +56,8 @@ interface PatientDocument {
   upload_date: string;
   file_path: string | null;
   file_type: string | null;
-}
+
+export default function Clinician() {
   const [phase, setPhase] = useState<Phase>("form");
   const [doctorName, setDoctorName] = useState("");
   const [hospital, setHospital] = useState("");
