@@ -76,18 +76,24 @@ export default function Clinician() {
     setTimeout(() => setVerifyStep(1), 1500);
     setTimeout(() => setVerifyStep(2), 3000);
 
+    const reqData = {
+      healthKeyId: patientId.trim(),
+      doctorName,
+      hospitalName: hospital,
+      purpose,
+    };
+
     try {
       const response = await requestEmergencyAccess({
-        healthKeyId: patientId.trim(),
-        doctorName,
-        hospitalName: hospital,
-        purpose,
-        preferredLang: lang,
+        ...reqData,
+        preferredLang: "EN",
       });
 
       setResponseData(response);
+      setRequestData(reqData);
+      setEnglishSummary(response.summary);
+      setLang("EN");
 
-      // Calculate real countdown from expiresAt
       const expiresAt = new Date(response.expiresAt).getTime();
       const now = Date.now();
       const remainingSeconds = Math.max(0, Math.floor((expiresAt - now) / 1000));
@@ -103,7 +109,35 @@ export default function Clinician() {
       setPhase("form");
       setApiLoading(false);
     }
-  }, [patientId, doctorName, hospital, purpose, lang]);
+  }, [patientId, doctorName, hospital, purpose]);
+
+  const handleLangSwitch = useCallback(async (newLang: string) => {
+    if (newLang === lang) return;
+    setLang(newLang);
+
+    if (newLang === "EN" && englishSummary) {
+      setResponseData((prev) => prev ? { ...prev, summary: englishSummary } : prev);
+      return;
+    }
+
+    if (!requestData) return;
+    setTranslating(true);
+    try {
+      const response = await requestEmergencyAccess({
+        ...requestData,
+        preferredLang: newLang,
+      });
+      setResponseData((prev) => prev ? { ...prev, summary: response.summary } : prev);
+    } catch (err: any) {
+      toast.error("Translation failed. Showing English.");
+      setLang("EN");
+      if (englishSummary) {
+        setResponseData((prev) => prev ? { ...prev, summary: englishSummary } : prev);
+      }
+    } finally {
+      setTranslating(false);
+    }
+  }, [lang, requestData, englishSummary]);
 
   const handleRequestAccess = (e: React.FormEvent) => {
     e.preventDefault();
