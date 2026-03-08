@@ -357,6 +357,17 @@ export default function Clinician() {
             <button type="submit" className="btn-primary w-full text-base py-4">
               Request Emergency Access
             </button>
+
+            <button type="button" onClick={() => {
+              setDoctorName("Dr. Ramesh Patil");
+              setHospital("AIIMS Nagpur");
+              setDoctorId("MH-DOC-29471");
+              setPatientId("HK-2847-NKGP");
+              setPurpose("Emergency Treatment");
+              toast.info("Demo credentials filled. Click 'Request Emergency Access' to proceed.");
+            }} className="w-full text-xs text-muted-foreground hover:text-primary transition-colors underline underline-offset-4">
+              Try Demo
+            </button>
           </form>
 
           <div className="relative my-8">
