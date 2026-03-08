@@ -365,8 +365,8 @@ export default function Clinician() {
               setPatientId("HK-2847-NKGP");
               setPurpose("Emergency Treatment");
               toast.info("Demo credentials filled. Click 'Request Emergency Access' to proceed.");
-            }} className="w-full text-xs text-muted-foreground hover:text-primary transition-colors underline underline-offset-4">
-              Try Demo
+            }} className="w-full py-2.5 rounded-lg border border-border bg-secondary/50 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors font-medium">
+              🧪 Try Demo
             </button>
           </form>
 
