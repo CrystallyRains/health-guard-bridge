@@ -97,8 +97,8 @@ export default function DocumentViewer({ document, onClose, mode = "patient" }: 
   const isPdf = document.fileType === "application/pdf" || /\.pdf$/i.test(document.name);
 
   return (
-    <div className="fixed inset-0 z-[70] bg-background/90 backdrop-blur-md flex items-center justify-center p-4" onClick={onClose}>
-      <div className="glass-card max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[70] bg-background/90 backdrop-blur-md flex items-start justify-center p-4 pt-16 overflow-y-auto" onClick={onClose}>
+      <div className="glass-card max-w-3xl w-full max-h-[85vh] flex flex-col overflow-hidden my-auto" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-border">
           <div className="flex items-center gap-3 min-w-0">
