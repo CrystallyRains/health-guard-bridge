@@ -52,8 +52,24 @@ export default function PatientDashboard() {
     if (updated) setPatient(updated);
   };
 
-  const handleAddDocument = async (name: string) => {
+  const handleAddDocument = async (name: string, file?: File) => {
     if (!patient || !user) return;
+
+    let filePath: string | null = null;
+    let fileType: string | null = null;
+    let fileSize: number | null = null;
+
+    // Upload file to storage if provided
+    if (file) {
+      const path = `${user.id}/${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage.from("patient-documents").upload(path, file);
+      if (!uploadError) {
+        filePath = path;
+        fileType = file.type;
+        fileSize = file.size;
+      }
+    }
+
     const { document: doc, error } = await createDocument({
       patient_id: patient.id,
       user_id: user.id,
@@ -61,6 +77,9 @@ export default function PatientDashboard() {
       upload_date: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
       status: "Processed",
       lang: "English",
+      file_path: filePath,
+      file_type: fileType,
+      file_size: fileSize,
     });
     if (error) {
       toast.error("Failed to add document");
