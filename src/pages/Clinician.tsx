@@ -366,7 +366,7 @@ export default function Clinician() {
 
             {/* Emergency Notes */}
             <div className="glass-card p-5">
-              <h3 className="font-heading font-semibold text-sm mb-3">📋 Emergency Notes</h3>
+              <h3 className="font-heading font-semibold text-sm mb-3">📋 {t.emergencyNotes}</h3>
               {summary.emergencyNotes
                 ? <p className="text-sm">{summary.emergencyNotes}</p>
                 : <span className="text-muted-foreground text-sm">None recorded</span>}
