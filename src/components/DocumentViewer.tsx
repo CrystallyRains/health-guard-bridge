@@ -64,7 +64,7 @@ export default function DocumentViewer({ document, onClose, mode = "patient" }: 
   const [loadingFile, setLoadingFile] = useState(false);
 
   const content = simulatedContent.default;
-  const isRegionalLang = document.lang !== "English" && document.lang.includes("→");
+  const isRegionalLang = true; // Translate available for all documents
 
   const handleTranslate = () => {
     setTranslating(true);
