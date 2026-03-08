@@ -13,7 +13,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-export interface Document {
+export interface DocumentDisplay {
+  id: string;
   name: string;
   date: string;
   status: "Processed" | "Processing" | "Failed";
@@ -21,11 +22,13 @@ export interface Document {
 }
 
 interface Props {
-  documents: Document[];
-  onUpdate: (docs: Document[]) => void;
+  documents: DocumentDisplay[];
+  onAdd: (name: string) => void;
+  onUpdate: (docId: string, updates: { name?: string }) => void;
+  onDelete: (docId: string) => void;
 }
 
-export default function DocumentsTab({ documents, onUpdate }: Props) {
+export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: Props) {
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [uploadStep, setUploadStep] = useState(0);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -41,22 +44,10 @@ export default function DocumentsTab({ documents, onUpdate }: Props) {
     steps.forEach((s, i) => setTimeout(() => setUploadStep(s), (i + 1) * 1500));
     setTimeout(() => {
       setUploadingDoc(false);
-      const newDoc: Document = {
-        name: file.name,
-        date: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
-        status: "Processed",
-        lang: "English",
-      };
-      onUpdate([newDoc, ...documents]);
+      onAdd(file.name);
       toast.success("Document processed successfully");
     }, 7000);
-    // Reset input
     e.target.value = "";
-  };
-
-  const deleteDoc = (idx: number) => {
-    onUpdate(documents.filter((_, i) => i !== idx));
-    toast.success("Document deleted");
   };
 
   const startRename = (idx: number) => {
@@ -66,9 +57,9 @@ export default function DocumentsTab({ documents, onUpdate }: Props) {
 
   const saveRename = () => {
     if (editingIdx === null) return;
-    const updated = [...documents];
-    updated[editingIdx] = { ...updated[editingIdx], name: editName.trim() || updated[editingIdx].name };
-    onUpdate(updated);
+    const doc = documents[editingIdx];
+    const newName = editName.trim() || doc.name;
+    onUpdate(doc.id, { name: newName });
     setEditingIdx(null);
     toast.success("Document renamed");
   };
@@ -107,7 +98,7 @@ export default function DocumentsTab({ documents, onUpdate }: Props) {
       ) : (
         <div className="space-y-3">
           {documents.map((doc, i) => (
-            <div key={`${doc.name}-${i}`} className="glass-card p-4 flex items-center justify-between">
+            <div key={doc.id} className="glass-card p-4 flex items-center justify-between">
               <div className="flex-1 min-w-0">
                 {editingIdx === i ? (
                   <div className="flex items-center gap-2">
@@ -142,7 +133,7 @@ export default function DocumentsTab({ documents, onUpdate }: Props) {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => deleteDoc(i)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                      <AlertDialogAction onClick={() => onDelete(doc.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
