@@ -41,6 +41,8 @@ export default function Clinician() {
   const [scanning, setScanning] = useState(false);
   const [bioSuccess, setBioSuccess] = useState(false);
   const [patientData, setPatientData] = useState<PatientRecord | null>(null);
+  const [patientDocs, setPatientDocs] = useState<DocumentRecord[]>([]);
+  const [viewingDoc, setViewingDoc] = useState<DocumentRecord | null>(null);
 
   const [verifyStep, setVerifyStep] = useState(0);
   const [lang, setLang] = useState("EN");
