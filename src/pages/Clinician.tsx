@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import { mockPatient, clinicianTranslations } from "@/data/mockData";
+import { clinicianTranslations } from "@/data/mockData";
+import { getPatientByHealthKeyId, createAuditLog } from "@/lib/api";
+import type { PatientRecord } from "@/lib/api";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FingerprintScanner from "@/components/FingerprintScanner";
 import { Lock, AlertTriangle, LogOut } from "lucide-react";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,18 +39,24 @@ export default function Clinician() {
   const [purpose, setPurpose] = useState("");
   const [scanning, setScanning] = useState(false);
   const [bioSuccess, setBioSuccess] = useState(false);
+  const [patientData, setPatientData] = useState<PatientRecord | null>(null);
 
-  // Verification steps
   const [verifyStep, setVerifyStep] = useState(0);
-
-  // Summary state
   const [lang, setLang] = useState("EN");
-  const [timeLeft, setTimeLeft] = useState(1800); // 30 min
+  const [timeLeft, setTimeLeft] = useState(1800);
   const [expired, setExpired] = useState(false);
 
   const t = clinicianTranslations[lang];
 
-  const startVerification = useCallback(() => {
+  const startVerification = useCallback(async () => {
+    // Fetch patient data
+    const { patient, error } = await getPatientByHealthKeyId(patientId.trim());
+    if (error || !patient) {
+      toast.error("Patient not found. Please check the HealthKey ID.");
+      return;
+    }
+    setPatientData(patient);
+
     setPhase("verifying");
     setVerifyStep(0);
     setTimeout(() => setVerifyStep(1), 1500);
@@ -55,8 +64,17 @@ export default function Clinician() {
     setTimeout(() => setVerifyStep(3), 5000);
     setTimeout(() => {
       setPhase("summary");
+      // Log the access
+      createAuditLog({
+        patient_id: patient.id,
+        doctor_name: doctorName,
+        hospital,
+        purpose,
+        duration: "30 min",
+        status: "Active",
+      });
     }, 6000);
-  }, []);
+  }, [patientId, doctorName, hospital, purpose]);
 
   const handleRequestAccess = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,11 +86,10 @@ export default function Clinician() {
     setTimeout(() => {
       setScanning(false);
       setBioSuccess(true);
-      setTimeout(() => startVerification(), 1000);
+      toast.info("Biometric scan is simulated. Please enter patient HealthKey ID.");
     }, 2000);
   };
 
-  // Countdown timer
   useEffect(() => {
     if (phase !== "summary" || expired) return;
     const interval = setInterval(() => {
@@ -91,6 +108,10 @@ export default function Clinician() {
   const formatTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
   const timerDanger = timeLeft < 300;
 
+  const privacyToggles = patientData?.privacy_toggles as { allergies: boolean; medications: boolean; conditions: boolean; surgeries: boolean } | undefined;
+  const emergencyContacts = (patientData?.emergency_contacts ?? []) as { name: string; relation: string; phone: string }[];
+  const surgeries = (patientData?.surgeries ?? []) as { name: string; date: string }[];
+
   if (phase === "verifying") {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
@@ -108,10 +129,10 @@ export default function Clinician() {
               {s.text}
             </div>
           ))}
-          {verifyStep >= 2 && (
+          {verifyStep >= 2 && patientData && (
             <div className="glass-card p-4 text-left text-xs text-muted-foreground mt-4 animate-fade-up">
-              <p className="font-mono">SMS sent to +91-98XXX-XXXXX:</p>
-              <p className="mt-2 italic">"HealthKey Alert: {doctorName || "Dr. Unknown"} at {hospital || "Hospital"} has requested emergency access to {mockPatient.name}'s medical summary at {new Date().toLocaleTimeString()}."</p>
+              <p className="font-mono">SMS notification sent:</p>
+              <p className="mt-2 italic">"HealthKey Alert: {doctorName} at {hospital} has requested emergency access to {patientData.name}'s medical summary at {new Date().toLocaleTimeString()}."</p>
             </div>
           )}
         </div>
@@ -119,53 +140,45 @@ export default function Clinician() {
     );
   }
 
-  if (phase === "summary") {
+  if (phase === "summary" && patientData) {
     return (
       <div className="min-h-screen relative">
-        {/* Timer bar */}
         <div className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-border/50 px-4 py-3">
           <div className="max-w-5xl mx-auto flex items-center justify-between">
-            <span className="font-heading font-semibold text-sm">Clinical Summary — {mockPatient.name}</span>
+            <span className="font-heading font-semibold text-sm">Clinical Summary — {patientData.name}</span>
             <div className="flex items-center gap-4">
               <div className="flex gap-1">
                 {langOptions.map((l) => (
-                  <button
-                    key={l.code}
-                    onClick={() => setLang(l.code)}
+                  <button key={l.code} onClick={() => setLang(l.code)}
                     className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
                       lang === l.code ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
+                    }`}>
                     {l.flag} {l.label}
                   </button>
                 ))}
               </div>
-              <div className={`font-mono font-bold text-lg ${timerDanger ? "text-red-400 animate-pulse" : "text-primary"}`}>
+              <div className={`font-mono font-bold text-lg ${timerDanger ? "text-destructive animate-pulse" : "text-primary"}`}>
                 {formatTime(timeLeft)}
               </div>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors text-xs font-medium">
-                    <LogOut className="h-3.5 w-3.5" />
-                    End Session
+                    <LogOut className="h-3.5 w-3.5" /> End Session
                   </button>
                 </AlertDialogTrigger>
                 <AlertDialogContent className="glass-card border-destructive/30">
                   <AlertDialogHeader>
                     <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-                      <AlertTriangle className="h-5 w-5" />
-                      End Emergency Session?
+                      <AlertTriangle className="h-5 w-5" /> End Emergency Session?
                     </AlertDialogTitle>
                     <AlertDialogDescription>
-                      This will immediately revoke your access to the patient's medical summary. This action cannot be undone and will be logged in the patient's access history.
+                      This will immediately revoke your access to the patient's medical summary. This action will be logged.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel className="btn-secondary">Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      onClick={() => { setPhase("form"); setTimeLeft(1800); setExpired(false); }}
-                    >
+                    <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      onClick={() => { setPhase("form"); setTimeLeft(1800); setExpired(false); setPatientData(null); }}>
                       End Session
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -173,80 +186,79 @@ export default function Clinician() {
               </AlertDialog>
             </div>
           </div>
-          {/* Progress bar */}
           <div className="max-w-5xl mx-auto mt-2">
             <div className="h-1 bg-border rounded-full overflow-hidden">
-              <div
-                className={`h-full transition-all duration-1000 rounded-full ${timerDanger ? "bg-red-500" : "bg-primary"}`}
-                style={{ width: `${(timeLeft / 1800) * 100}%` }}
-              />
+              <div className={`h-full transition-all duration-1000 rounded-full ${timerDanger ? "bg-destructive" : "bg-primary"}`}
+                style={{ width: `${(timeLeft / 1800) * 100}%` }} />
             </div>
           </div>
         </div>
 
         <div className="pt-24 pb-16 px-4 max-w-5xl mx-auto">
-          {/* Warning */}
           <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-6">
             <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0" />
             <p className="text-sm text-amber-300">{t.warning}</p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
-            {/* Allergies */}
-            <div className="glass-card p-5 border-red-500/30 md:col-span-2">
-              <h3 className="font-heading font-semibold text-sm mb-3 text-red-400">🚨 {t.allergies}</h3>
-              <div className="flex flex-wrap gap-2">
-                {mockPatient.allergies.map((a) => <span key={a} className="tag-allergy text-base">{a}</span>)}
+            {(!privacyToggles || privacyToggles.allergies) && (
+              <div className="glass-card p-5 border-red-500/30 md:col-span-2">
+                <h3 className="font-heading font-semibold text-sm mb-3 text-red-400">🚨 {t.allergies}</h3>
+                <div className="flex flex-wrap gap-2">
+                  {(patientData.allergies || []).map((a) => <span key={a} className="tag-allergy text-base">{a}</span>)}
+                  {(patientData.allergies || []).length === 0 && <span className="text-muted-foreground text-sm">None recorded</span>}
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-3">Source: Patient-entered</p>
               </div>
-              <p className="text-[10px] text-muted-foreground mt-3">Source: Patient-entered</p>
-            </div>
+            )}
 
-            {/* Medications */}
-            <div className="glass-card p-5 border-blue-500/20">
-              <h3 className="font-heading font-semibold text-sm mb-3 text-blue-400">💊 {t.medications}</h3>
-              <ul className="space-y-1">
-                {mockPatient.medications.map((m) => <li key={m} className="text-sm tag-medication inline-block mr-2 mb-2">{m}</li>)}
-              </ul>
-              <p className="text-[10px] text-muted-foreground mt-3">Source: Patient-entered + AI-extracted from Prescription_Feb2026.jpg</p>
-            </div>
-
-            {/* Conditions */}
-            <div className="glass-card p-5 border-amber-500/20">
-              <h3 className="font-heading font-semibold text-sm mb-3 text-amber-400">🫀 {t.conditions}</h3>
-              <div className="flex flex-wrap gap-2">
-                {mockPatient.conditions.map((c) => <span key={c} className="tag-condition">{c}</span>)}
+            {(!privacyToggles || privacyToggles.medications) && (
+              <div className="glass-card p-5 border-blue-500/20">
+                <h3 className="font-heading font-semibold text-sm mb-3 text-blue-400">💊 {t.medications}</h3>
+                <ul className="space-y-1">
+                  {(patientData.medications || []).map((m) => <li key={m} className="text-sm tag-medication inline-block mr-2 mb-2">{m}</li>)}
+                  {(patientData.medications || []).length === 0 && <li className="text-muted-foreground text-sm">None recorded</li>}
+                </ul>
               </div>
-              <p className="text-[10px] text-muted-foreground mt-3">Source: AI-extracted from City_Hospital_Discharge_Jan2026.pdf</p>
-            </div>
+            )}
 
-            {/* Blood Group */}
+            {(!privacyToggles || privacyToggles.conditions) && (
+              <div className="glass-card p-5 border-amber-500/20">
+                <h3 className="font-heading font-semibold text-sm mb-3 text-amber-400">🫀 {t.conditions}</h3>
+                <div className="flex flex-wrap gap-2">
+                  {(patientData.conditions || []).map((c) => <span key={c} className="tag-condition">{c}</span>)}
+                  {(patientData.conditions || []).length === 0 && <span className="text-muted-foreground text-sm">None recorded</span>}
+                </div>
+              </div>
+            )}
+
             <div className="glass-card p-5 flex items-center justify-center">
               <div className="text-center">
                 <p className="text-xs text-muted-foreground mb-1">{t.bloodGroup}</p>
-                <p className="text-5xl font-heading font-bold text-red-400">{mockPatient.blood}</p>
+                <p className="text-5xl font-heading font-bold text-red-400">{patientData.blood}</p>
               </div>
             </div>
 
-            {/* Surgeries */}
-            <div className="glass-card p-5">
-              <h3 className="font-heading font-semibold text-sm mb-3">🔪 {t.surgeries}</h3>
-              {mockPatient.surgeries.map((s) => (
-                <div key={s.name} className="text-sm">
-                  <span>{s.name}</span>
-                  <span className="text-muted-foreground ml-2 font-mono text-xs">{s.date}</span>
-                </div>
-              ))}
-            </div>
+            {(!privacyToggles || privacyToggles.surgeries) && (
+              <div className="glass-card p-5">
+                <h3 className="font-heading font-semibold text-sm mb-3">🔪 {t.surgeries}</h3>
+                {surgeries.length > 0 ? surgeries.map((s) => (
+                  <div key={s.name} className="text-sm">
+                    <span>{s.name}</span>
+                    <span className="text-muted-foreground ml-2 font-mono text-xs">{s.date}</span>
+                  </div>
+                )) : <span className="text-muted-foreground text-sm">None recorded</span>}
+              </div>
+            )}
 
-            {/* Emergency Contacts */}
             <div className="glass-card p-5">
               <h3 className="font-heading font-semibold text-sm mb-3">📞 {t.emergencyContacts}</h3>
-              {mockPatient.emergencyContacts.map((c) => (
+              {emergencyContacts.length > 0 ? emergencyContacts.map((c) => (
                 <div key={c.name} className="text-sm flex justify-between py-1">
                   <span>{c.name} <span className="text-muted-foreground">({c.relation})</span></span>
                   <span className="font-mono text-muted-foreground">{c.phone}</span>
                 </div>
-              ))}
+              )) : <span className="text-muted-foreground text-sm">None recorded</span>}
             </div>
           </div>
 
@@ -255,15 +267,14 @@ export default function Clinician() {
           </p>
         </div>
 
-        {/* Expired overlay */}
         {expired && (
           <div className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-md flex items-center justify-center">
             <div className="text-center space-y-6 animate-fade-up">
               <div className="w-24 h-24 mx-auto rounded-full bg-destructive/20 flex items-center justify-center">
-                <Lock className="h-12 w-12 text-red-400" />
+                <Lock className="h-12 w-12 text-destructive" />
               </div>
               <h2 className="font-heading font-bold text-2xl">{t.sessionExpired}</h2>
-              <button onClick={() => { setPhase("form"); setTimeLeft(1800); setExpired(false); }} className="btn-secondary">
+              <button onClick={() => { setPhase("form"); setTimeLeft(1800); setExpired(false); setPatientData(null); }} className="btn-secondary">
                 Back to Portal
               </button>
             </div>
@@ -285,7 +296,7 @@ export default function Clinician() {
             <input className="input-field" placeholder="Doctor Name" value={doctorName} onChange={(e) => setDoctorName(e.target.value)} required />
             <input className="input-field" placeholder="Hospital Name" value={hospital} onChange={(e) => setHospital(e.target.value)} required />
             <input className="input-field" placeholder="Doctor ID / License Number" value={doctorId} onChange={(e) => setDoctorId(e.target.value)} required />
-            <input className="input-field font-mono" placeholder="Patient HealthKey ID (e.g. HK-2847-NKGP)" value={patientId} onChange={(e) => setPatientId(e.target.value)} required />
+            <input className="input-field font-mono" placeholder="Patient HealthKey ID (e.g. HK-1234-ABCD)" value={patientId} onChange={(e) => setPatientId(e.target.value)} required />
             <select className="select-field" value={purpose} onChange={(e) => setPurpose(e.target.value)} required>
               <option value="">Purpose of Access</option>
               {purposes.map((p) => <option key={p}>{p}</option>)}

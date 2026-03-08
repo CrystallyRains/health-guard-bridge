@@ -2,18 +2,54 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import FingerprintScanner from "@/components/FingerprintScanner";
-import { KeyRound } from "lucide-react";
+import { KeyRound, Sparkles } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+
+const DEMO_EMAIL = "demo@healthkey.in";
+const DEMO_PASSWORD = "demo123456";
 
 export default function PatientLogin() {
   const navigate = useNavigate();
+  const { signIn, user } = useAuth();
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [bioSuccess, setBioSuccess] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  // If already logged in, redirect
+  if (user) {
+    navigate("/patient/dashboard", { replace: true });
+    return null;
+  }
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/patient/dashboard");
+    setLoading(true);
+
+    // Use email directly or treat HealthKey ID login
+    const email = loginId.includes("@") ? loginId : loginId; // For now, require email
+    if (!loginId.includes("@")) {
+      toast.error("Please use your registered email to login");
+      setLoading(false);
+      return;
+    }
+
+    const { error } = await signIn(email, password);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Welcome back!");
+      navigate("/patient/dashboard");
+    }
+    setLoading(false);
+  };
+
+  const handleTryDemo = () => {
+    setLoginId(DEMO_EMAIL);
+    setPassword(DEMO_PASSWORD);
+    toast.info("Demo credentials filled! Click Login to continue.");
   };
 
   const handleBioLogin = () => {
@@ -21,7 +57,7 @@ export default function PatientLogin() {
     setTimeout(() => {
       setScanning(false);
       setBioSuccess(true);
-      setTimeout(() => navigate("/patient/dashboard"), 1000);
+      toast.info("Biometric login is simulated. Please use email & password.");
     }, 2000);
   };
 
@@ -41,9 +77,11 @@ export default function PatientLogin() {
           <form onSubmit={handleLogin} className="space-y-4">
             <input
               className="input-field"
-              placeholder="HealthKey ID or Phone Number"
+              placeholder="Email Address"
+              type="email"
               value={loginId}
               onChange={(e) => setLoginId(e.target.value)}
+              required
             />
             <input
               className="input-field"
@@ -51,9 +89,21 @@ export default function PatientLogin() {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              required
             />
-            <button type="submit" className="btn-primary w-full">Login</button>
+            <button type="submit" className="btn-primary w-full" disabled={loading}>
+              {loading ? "Signing in..." : "Login"}
+            </button>
           </form>
+
+          {/* Try Demo */}
+          <button
+            onClick={handleTryDemo}
+            className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-lg border border-primary/30 text-primary text-sm font-medium hover:bg-primary/5 transition-colors"
+          >
+            <Sparkles className="h-4 w-4" />
+            Try Demo
+          </button>
 
           <div className="relative my-8">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>

@@ -1,34 +1,3 @@
-export const mockPatient = {
-  id: "HK-2847-NKGP",
-  name: "Snigdha Chaudhari",
-  age: 28,
-  gender: "Female",
-  phone: "+91-98765-43210",
-  email: "snigdha@email.com",
-  blood: "A+",
-  state: "Maharashtra",
-  allergies: ["Penicillin", "Peanuts", "Sulfa drugs"],
-  medications: ["Lisinopril 10mg", "Metformin 500mg"],
-  conditions: ["Hypertension", "Type 2 Diabetes"],
-  surgeries: [{ name: "Appendectomy", date: "March 2023" }],
-  emergencyContacts: [
-    { name: "Vijay Chaudhari", relation: "Father", phone: "+91-98XXX-XXXXX" },
-    { name: "Meena Chaudhari", relation: "Mother", phone: "+91-97XXX-XXXXX" },
-  ],
-  privacyToggles: { allergies: true, medications: true, conditions: true, surgeries: true },
-  documents: [
-    { name: "City_Hospital_Discharge_Jan2026.pdf", date: "Jan 15, 2026", status: "Processed" as const, lang: "English" },
-    { name: "Prescription_Feb2026.jpg", date: "Feb 10, 2026", status: "Processed" as const, lang: "Marathi → English" },
-    { name: "BloodReport_Dec2025.pdf", date: "Dec 5, 2025", status: "Processed" as const, lang: "English" },
-  ],
-};
-
-export const mockAuditLog = [
-  { time: "08 Mar 2026, 09:14 AM", doctor: "Dr. Ramesh Patil", hospital: "AIIMS Nagpur", purpose: "Emergency Treatment", duration: "30 min", status: "Expired" as const },
-  { time: "05 Mar 2026, 03:42 PM", doctor: "Dr. Priya Sharma", hospital: "Wockhardt Hospital, Mumbai", purpose: "OPD Consultation", duration: "30 min", status: "Expired" as const },
-  { time: "01 Mar 2026, 11:00 AM", doctor: "Dr. Anil Mehta", hospital: "Apollo Hospitals, Nagpur", purpose: "Pre-surgery Review", duration: "30 min", status: "Expired" as const },
-];
-
 export const indianStates = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
   "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand",
