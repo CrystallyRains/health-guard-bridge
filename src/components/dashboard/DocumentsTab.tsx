@@ -26,7 +26,7 @@ export interface DocumentDisplay {
 
 interface Props {
   documents: DocumentDisplay[];
-  onAdd: (name: string, file?: File) => void;
+  onAdd: (name: string, file?: File) => Promise<void> | void;
   onUpdate: (docId: string, updates: { name?: string }) => void;
   onDelete: (docId: string) => void;
 }
@@ -38,19 +38,32 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: P
   const [editName, setEditName] = useState("");
   const [viewingDoc, setViewingDoc] = useState<DocumentDisplay | null>(null);
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = "";
 
     setUploadingDoc(true);
     setUploadStep(0);
-    const steps = [1, 2, 3, 4];
-    steps.forEach((s, i) => setTimeout(() => setUploadStep(s), (i + 1) * 1500));
-    setTimeout(() => {
+
+    // Show extraction step immediately
+    setUploadStep(1);
+    const step2Timer = setTimeout(() => setUploadStep(2), 1500);
+    const step3Timer = setTimeout(() => setUploadStep(3), 3000);
+
+    try {
+      await onAdd(file.name, file);
+      // Clear any pending timers and jump to done
+      clearTimeout(step2Timer);
+      clearTimeout(step3Timer);
+      setUploadStep(4);
+      // Keep "Done" visible briefly
+      setTimeout(() => setUploadingDoc(false), 1500);
+    } catch {
+      clearTimeout(step2Timer);
+      clearTimeout(step3Timer);
       setUploadingDoc(false);
-      onAdd(file.name, file);
-    }, 7000);
-    e.target.value = "";
+    }
   };
 
   const startRename = (idx: number) => {
