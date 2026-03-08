@@ -19,25 +19,7 @@ export default function PatientDashboard() {
   const [loading, setLoading] = useState(true);
   const [auditLoading, setAuditLoading] = useState(false);
 
-  useEffect(() => {
-    const stored = localStorage.getItem("healthkey_patient");
-    const healthKeyId = localStorage.getItem("healthkey_patient_id");
-    if (!stored || !healthKeyId) {
-      navigate("/patient-login", { replace: true });
-      return;
-    }
-
-    // Load cached data first for instant UI
-    try {
-      const parsed = JSON.parse(stored);
-      setPatient(parsed);
-      setDocuments(parsed.documents || []);
-    } catch {
-      navigate("/patient-login", { replace: true });
-      return;
-    }
-
-    // Then fetch fresh data from API
+  const refreshPatientData = (healthKeyId: string) => {
     getPatientById(healthKeyId)
       .then((freshData) => {
         console.log("[Dashboard] Fresh patient data:", freshData);
@@ -47,9 +29,30 @@ export default function PatientDashboard() {
       })
       .catch((err) => {
         console.error("[Dashboard] Failed to refresh patient data:", err);
-        // Keep using cached data, don't redirect
       })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    const stored = localStorage.getItem("healthkey_patient");
+    const healthKeyId = localStorage.getItem("healthkey_patient_id");
+    if (!stored || !healthKeyId) {
+      navigate("/patient-login", { replace: true });
+      return;
+    }
+
+    // Load cached patient profile (not documents) for instant UI
+    try {
+      const parsed = JSON.parse(stored);
+      setPatient(parsed);
+      // Don't load documents from cache — always fetch fresh from API
+    } catch {
+      navigate("/patient-login", { replace: true });
+      return;
+    }
+
+    // Fetch fresh data from API
+    refreshPatientData(healthKeyId);
   }, [navigate]);
 
   // Load audit logs when tab switches to access
@@ -76,7 +79,6 @@ export default function PatientDashboard() {
     try {
       console.log("[Upload] Starting upload:", file.name, "size:", file.size, "type:", file.type);
       const base64 = await fileToBase64(file);
-      console.log("[Upload] Base64 length:", base64.length);
       const result = await uploadDocument({
         healthKeyId,
         fileName: file.name,
@@ -85,26 +87,13 @@ export default function PatientDashboard() {
       });
       console.log("[Upload] API response:", result);
 
-      const newDoc = {
-        docId: result.docId,
-        fileName: result.fileName,
-        uploadedAt: result.uploadedAt,
-        detectedLang: result.detectedLang,
-      };
-
-      const updatedDocs = [newDoc, ...documents];
-      setDocuments(updatedDocs);
-
-      // Persist to localStorage
-      const updatedPatient = { ...patient, documents: updatedDocs };
-      setPatient(updatedPatient);
-      localStorage.setItem("healthkey_patient", JSON.stringify(updatedPatient));
-
       toast.success(result.message || "Document processed successfully");
+
+      // Re-fetch fresh documents list from API
+      refreshPatientData(healthKeyId);
     } catch (err: any) {
       console.error("[Upload] Error:", err);
-      toast.error(err.message || "Failed to upload document");
-      throw err; // Re-throw so DocumentsTab animation handles it
+      // Silent to patient — never show failure
     }
   };
 
