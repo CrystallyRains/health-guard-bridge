@@ -50,14 +50,20 @@ export async function uploadDocument(data: {
     const err = await res.json().catch(() => ({ message: "Upload failed" }));
     throw new Error(err.message || "Upload failed");
   }
-  return res.json();
+  return res.json() as Promise<{
+    docId: string;
+    fileName: string;
+    uploadedAt: string;
+    detectedLang: string;
+    extracted: any;
+    message?: string;
+  }>;
 }
 
 export async function requestEmergencyAccess(data: {
   healthKeyId: string;
   doctorName: string;
   hospitalName: string;
-  doctorLicense: string;
   purpose: string;
   preferredLang: string;
 }) {
@@ -71,21 +77,20 @@ export async function requestEmergencyAccess(data: {
     throw new Error(err.message || "Access request failed");
   }
   return res.json() as Promise<{
+    sessionId: string;
+    patientName: string;
+    expiresAt: string;
+    sessionDurationMinutes: number;
     summary: {
-      name: string;
-      age: number;
-      gender: string;
-      blood: string;
+      criticalAlert: string;
       allergies: string[];
       medications: string[];
       conditions: string[];
-      surgeries: { name: string; date: string }[];
-      emergencyContacts: { name: string; relation: string; phone: string }[];
-      privacyToggles?: { allergies: boolean; medications: boolean; conditions: boolean; surgeries: boolean };
-      documents?: { id: string; name: string; date: string; lang: string; filePath?: string; fileType?: string }[];
+      surgeries: any[];
+      bloodGroup: string;
+      emergencyNotes: string;
+      dataSources: string[];
     };
-    sessionId: string;
-    expiresAt: string;
   }>;
 }
 
@@ -100,12 +105,37 @@ export async function fetchAuditLogs(healthKeyId: string) {
   }
   return res.json() as Promise<{
     logs: {
-      time: string;
-      doctor: string;
-      hospital: string;
+      doctorName: string;
+      hospitalName: string;
       purpose: string;
-      duration: string;
-      status: "Expired" | "Active" | "Pending";
+      accessedAt: string;
+      status: string;
     }[];
   }>;
+}
+
+export async function getPatientById(healthKeyId: string) {
+  const res = await fetch(api.getPatient(healthKeyId), {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    if (res.status === 404) throw new Error("NOT_FOUND");
+    const err = await res.json().catch(() => ({ message: "Failed to fetch patient" }));
+    throw new Error(err.message || "Failed to fetch patient");
+  }
+  return res.json();
+}
+
+export async function getPatientByPhone(phone: string) {
+  const res = await fetch(api.getPatientByPhone(phone), {
+    method: "GET",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) {
+    if (res.status === 404) throw new Error("NOT_FOUND");
+    const err = await res.json().catch(() => ({ message: "Failed to fetch patient" }));
+    throw new Error(err.message || "Failed to fetch patient");
+  }
+  return res.json();
 }

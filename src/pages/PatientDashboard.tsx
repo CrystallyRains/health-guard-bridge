@@ -1,10 +1,6 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-import { getPatientByUserId, getDocuments, updatePatient, createDocument, updateDocument, deleteDocument, deletePatient } from "@/lib/api";
-import type { PatientRecord, DocumentRecord } from "@/lib/api";
-import { fetchAuditLogs, fileToBase64, uploadDocument } from "@/lib/apiHelpers";
+import { fetchAuditLogs, uploadDocument, fileToBase64 } from "@/lib/apiHelpers";
 import { KeyRound, LogOut, Heart, FileText, Search, Settings } from "lucide-react";
 import ProfileTab from "@/components/dashboard/ProfileTab";
 import DocumentsTab from "@/components/dashboard/DocumentsTab";
@@ -14,140 +10,109 @@ import { toast } from "sonner";
 
 type Tab = "profile" | "documents" | "access" | "settings";
 
-interface AuditLogEntry {
-  time: string;
-  doctor: string;
-  hospital: string;
-  purpose: string;
-  duration: string;
-  status: "Expired" | "Active" | "Pending";
-}
-
 export default function PatientDashboard() {
   const navigate = useNavigate();
-  const { user, signOut } = useAuth();
   const [tab, setTab] = useState<Tab>("profile");
-  const [patient, setPatient] = useState<PatientRecord | null>(null);
-  const [documents, setDocuments] = useState<DocumentRecord[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [patient, setPatient] = useState<any>(null);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [auditLoading, setAuditLoading] = useState(false);
 
   useEffect(() => {
-    if (!user) return;
-    loadData();
-  }, [user]);
-
-  const loadData = async () => {
-    if (!user) return;
-    setLoading(true);
-    const { patient: p } = await getPatientByUserId(user.id);
-    if (p) {
-      setPatient(p);
-      const [docsResult] = await Promise.all([
-        getDocuments(p.id),
-      ]);
-      setDocuments(docsResult.documents);
-
-      // Fetch audit logs from AWS API
-      try {
-        const { logs } = await fetchAuditLogs(p.healthkey_id);
-        setAuditLogs(logs);
-      } catch (err) {
-        console.error("Failed to fetch audit logs from API:", err);
-        setAuditLogs([]);
-      }
+    const stored = localStorage.getItem("healthkey_patient");
+    if (!stored) {
+      navigate("/patient-login", { replace: true });
+      return;
+    }
+    try {
+      const parsed = JSON.parse(stored);
+      setPatient(parsed);
+      setDocuments(parsed.documents || []);
+    } catch {
+      navigate("/patient-login", { replace: true });
+      return;
     }
     setLoading(false);
-  };
+  }, [navigate]);
 
-  const handleUpdatePatient = async (updates: Partial<PatientRecord>) => {
-    if (!patient) return;
-    const { patient: updated, error } = await updatePatient(patient.id, updates);
-    if (error) {
-      toast.error("Failed to update: " + error.message);
-      return;
-    }
-    if (updated) setPatient(updated);
-  };
+  // Load audit logs when tab switches to access
+  useEffect(() => {
+    if (tab !== "access" || !patient) return;
+    const healthKeyId = localStorage.getItem("healthkey_patient_id");
+    if (!healthKeyId) return;
+
+    setAuditLoading(true);
+    fetchAuditLogs(healthKeyId)
+      .then(({ logs }) => setAuditLogs(logs || []))
+      .catch((err) => {
+        console.error("Failed to fetch audit logs:", err);
+        setAuditLogs([]);
+      })
+      .finally(() => setAuditLoading(false));
+  }, [tab, patient]);
 
   const handleAddDocument = async (name: string, file?: File) => {
-    if (!patient || !user) return;
+    if (!patient || !file) return;
+    const healthKeyId = localStorage.getItem("healthkey_patient_id");
+    if (!healthKeyId) return;
 
-    let filePath: string | null = null;
-    let fileType: string | null = null;
-    let fileSize: number | null = null;
+    try {
+      const base64 = await fileToBase64(file);
+      const result = await uploadDocument({
+        healthKeyId,
+        fileName: file.name,
+        fileBase64: base64,
+        contentType: file.type,
+      });
 
-    // Upload to AWS API if file provided
-    if (file) {
-      try {
-        const base64 = await fileToBase64(file);
-        const result = await uploadDocument({
-          healthKeyId: patient.healthkey_id,
-          fileName: file.name,
-          fileBase64: base64,
-          contentType: file.type,
-        });
-        // Also upload to storage for preview
-        const path = `${user.id}/${Date.now()}-${file.name}`;
-        const { error: uploadError } = await supabase.storage.from("patient-documents").upload(path, file);
-        if (!uploadError) {
-          filePath = path;
-          fileType = file.type;
-          fileSize = file.size;
-        }
-        toast.success(result.message || "Document uploaded and processed");
-      } catch (err: any) {
-        toast.error(err.message || "Failed to upload document");
-        return;
-      }
+      const newDoc = {
+        docId: result.docId,
+        fileName: result.fileName,
+        uploadedAt: result.uploadedAt,
+        detectedLang: result.detectedLang,
+      };
+
+      const updatedDocs = [newDoc, ...documents];
+      setDocuments(updatedDocs);
+
+      // Persist to localStorage
+      const updatedPatient = { ...patient, documents: updatedDocs };
+      setPatient(updatedPatient);
+      localStorage.setItem("healthkey_patient", JSON.stringify(updatedPatient));
+
+      toast.success(result.message || "Document processed successfully");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload document");
     }
-
-    const { document: doc, error } = await createDocument({
-      patient_id: patient.id,
-      user_id: user.id,
-      name,
-      upload_date: new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
-      status: "Processed",
-      lang: "English",
-      file_path: filePath,
-      file_type: fileType,
-      file_size: fileSize,
-    });
-    if (error) {
-      toast.error("Failed to add document");
-      return;
-    }
-    if (doc) setDocuments(prev => [doc, ...prev]);
   };
 
-  const handleUpdateDocument = async (docId: string, updates: Partial<DocumentRecord>) => {
-    const { document: doc, error } = await updateDocument(docId, updates);
-    if (error) {
-      toast.error("Failed to update document");
-      return;
-    }
-    if (doc) setDocuments(prev => prev.map(d => d.id === docId ? doc : d));
+  const handleUpdateDocument = async (docId: string, updates: { name?: string }) => {
+    setDocuments((prev) =>
+      prev.map((d) => (d.docId === docId ? { ...d, ...updates } : d))
+    );
+    toast.success("Document updated");
   };
 
   const handleDeleteDocument = async (docId: string) => {
-    const { error } = await deleteDocument(docId);
-    if (error) {
-      toast.error("Failed to delete document");
-      return;
-    }
-    setDocuments(prev => prev.filter(d => d.id !== docId));
+    const updatedDocs = documents.filter((d) => d.docId !== docId);
+    setDocuments(updatedDocs);
+    const updatedPatient = { ...patient, documents: updatedDocs };
+    setPatient(updatedPatient);
+    localStorage.setItem("healthkey_patient", JSON.stringify(updatedPatient));
+    toast.success("Document removed");
   };
 
-  const handleDeleteAccount = async () => {
-    if (!patient) return;
-    await deletePatient(patient.id);
-    await signOut();
-    toast.success("Account deleted");
+  const handleLogout = () => {
+    localStorage.removeItem("healthkey_patient");
+    localStorage.removeItem("healthkey_patient_id");
     navigate("/");
   };
 
-  const handleLogout = async () => {
-    await signOut();
+  const handleDeleteAccount = () => {
+    localStorage.removeItem("healthkey_patient");
+    localStorage.removeItem("healthkey_patient_id");
+    toast.success("Account data cleared");
     navigate("/");
   };
 
@@ -180,32 +145,45 @@ export default function PatientDashboard() {
     );
   }
 
-  // Convert DB format to component format
+  // Map AWS data to component format
   const patientForProfile = {
-    id: patient.healthkey_id,
-    name: patient.name,
-    age: patient.age,
-    gender: patient.gender,
-    phone: patient.phone,
-    email: patient.email,
-    blood: patient.blood,
-    state: patient.state,
+    id: patient.healthKeyId || patient.healthkey_id || "",
+    name: patient.name || "",
+    age: patient.age || 0,
+    gender: patient.gender || "",
+    phone: patient.phone || "",
+    email: patient.email || "",
+    blood: patient.blood || patient.bloodGroup || "",
+    state: patient.state || "",
     allergies: patient.allergies || [],
     medications: patient.medications || [],
     conditions: patient.conditions || [],
-    surgeries: (patient.surgeries as { name: string; date: string }[]) || [],
-    emergencyContacts: (patient.emergency_contacts as { name: string; relation: string; phone: string }[]) || [],
-    privacyToggles: (patient.privacy_toggles as { allergies: boolean; medications: boolean; conditions: boolean; surgeries: boolean }) || { allergies: true, medications: true, conditions: true, surgeries: true },
+    surgeries: patient.surgeries || [],
+    emergencyContacts: patient.emergencyContacts || [],
+    privacyToggles: patient.privacyToggles || { allergies: true, medications: true, conditions: true, surgeries: true },
   };
 
-  const docsForTab = documents.map(d => ({
-    id: d.id,
-    name: d.name,
-    date: d.upload_date,
-    status: d.status as "Processed" | "Processing" | "Failed",
-    lang: d.lang,
-    filePath: d.file_path,
-    fileType: d.file_type,
+  const docsForTab = documents.map((d: any) => ({
+    id: d.docId || d.id || Math.random().toString(),
+    name: d.fileName || d.name || "Untitled",
+    date: d.uploadedAt
+      ? new Date(d.uploadedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+      : d.date || "",
+    status: "Processed" as const,
+    lang: d.detectedLang || d.lang || "English",
+    filePath: d.filePath || null,
+    fileType: d.fileType || null,
+  }));
+
+  const auditForTab = auditLogs.map((log: any) => ({
+    time: log.accessedAt
+      ? new Date(log.accessedAt).toLocaleString("en-IN")
+      : log.time || "",
+    doctor: log.doctorName || log.doctor || "",
+    hospital: log.hospitalName || log.hospital || "",
+    purpose: log.purpose || "",
+    duration: log.duration || "30 min",
+    status: (log.status === "ACTIVE" ? "Active" : log.status === "EXPIRED" ? "Expired" : log.status) as "Active" | "Expired" | "Pending",
   }));
 
   return (
@@ -225,7 +203,7 @@ export default function PatientDashboard() {
 
       <div className="flex flex-1 pt-16">
         <aside className="hidden md:flex flex-col w-60 border-r border-border bg-card/50 p-4 gap-1">
-          {tabs.map(t => (
+          {tabs.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
@@ -239,7 +217,7 @@ export default function PatientDashboard() {
         </aside>
 
         <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-card border-t border-border/50 flex">
-          {tabs.map(t => (
+          {tabs.map((t) => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
@@ -257,19 +235,9 @@ export default function PatientDashboard() {
             <ProfileTab
               patient={patientForProfile}
               onUpdate={(updated) => {
-                handleUpdatePatient({
-                  name: updated.name,
-                  age: updated.age,
-                  gender: updated.gender,
-                  blood: updated.blood,
-                  state: updated.state,
-                  allergies: updated.allergies,
-                  medications: updated.medications,
-                  conditions: updated.conditions,
-                  surgeries: updated.surgeries as any,
-                  emergency_contacts: updated.emergencyContacts as any,
-                  privacy_toggles: updated.privacyToggles as any,
-                });
+                const updatedPatient = { ...patient, ...updated };
+                setPatient(updatedPatient);
+                localStorage.setItem("healthkey_patient", JSON.stringify(updatedPatient));
               }}
             />
           )}
@@ -277,22 +245,29 @@ export default function PatientDashboard() {
             <DocumentsTab
               documents={docsForTab}
               onAdd={handleAddDocument}
-              onUpdate={(docId, updates) => { handleUpdateDocument(docId, updates); }}
+              onUpdate={(docId, updates) => handleUpdateDocument(docId, updates)}
               onDelete={handleDeleteDocument}
             />
           )}
           {tab === "access" && (
-            <AccessLogTab auditLog={auditLogs} patient={patientForProfile} />
+            auditLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <div className="text-center space-y-4">
+                  <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+                  <p className="text-muted-foreground text-sm">Loading access logs...</p>
+                </div>
+              </div>
+            ) : (
+              <AccessLogTab auditLog={auditForTab} patient={patientForProfile} />
+            )
           )}
           {tab === "settings" && (
             <SettingsTab
               patient={patientForProfile}
               onUpdate={(updates) => {
-                const dbUpdates: Partial<PatientRecord> = {};
-                if (updates.phone) dbUpdates.phone = updates.phone;
-                if (updates.email) dbUpdates.email = updates.email;
-                if (updates.emergencyContacts) dbUpdates.emergency_contacts = updates.emergencyContacts as any;
-                handleUpdatePatient(dbUpdates);
+                const updatedPatient = { ...patient, ...updates };
+                setPatient(updatedPatient);
+                localStorage.setItem("healthkey_patient", JSON.stringify(updatedPatient));
               }}
               onDelete={handleDeleteAccount}
             />
