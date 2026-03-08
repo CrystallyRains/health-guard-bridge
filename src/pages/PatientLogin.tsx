@@ -95,14 +95,6 @@ export default function PatientLogin() {
             </button>
           </form>
 
-          {/* Try Demo */}
-          <button
-            onClick={handleTryDemo}
-            className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-lg border border-primary/30 text-primary text-sm font-medium hover:bg-primary/5 transition-colors"
-          >
-            <Sparkles className="h-4 w-4" />
-            Try Demo
-          </button>
 
           <div className="relative my-8">
             <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
