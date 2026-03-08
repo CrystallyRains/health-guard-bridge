@@ -106,9 +106,9 @@ export default function DocumentsTab({ documents, healthKeyId, onAdd, onUpdate, 
         <div className="space-y-3">
           {documents.map((doc, i) => (
             <div key={doc.id} className="glass-card p-4 flex items-center justify-between group">
-              <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setViewingDoc(doc)}>
+              <div className="flex-1 min-w-0">
                 {editingIdx === i ? (
-                  <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center gap-2">
                     <input className="input-field text-sm flex-1" value={editName} onChange={e => setEditName(e.target.value)} onKeyDown={e => e.key === "Enter" && saveRename()} autoFocus />
                     <button onClick={saveRename} className="text-primary"><Check className="h-4 w-4" /></button>
                     <button onClick={() => setEditingIdx(null)} className="text-muted-foreground"><X className="h-4 w-4" /></button>
@@ -122,7 +122,14 @@ export default function DocumentsTab({ documents, healthKeyId, onAdd, onUpdate, 
               </div>
               <div className="flex items-center gap-2 ml-3">
                 <span className="tag-success text-xs">✓ Uploaded</span>
-                <button onClick={() => setViewingDoc(doc)} className="text-muted-foreground hover:text-primary p-1" title="View"><Eye className="h-3.5 w-3.5" /></button>
+                <button
+                  onClick={() => handleViewDocument(doc.id)}
+                  disabled={viewingDocId === doc.id}
+                  className="text-muted-foreground hover:text-primary p-1"
+                  title="View"
+                >
+                  {viewingDocId === doc.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
+                </button>
                 <button onClick={() => startRename(i)} className="text-muted-foreground hover:text-primary p-1" title="Rename"><Pencil className="h-3.5 w-3.5" /></button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -143,10 +150,6 @@ export default function DocumentsTab({ documents, healthKeyId, onAdd, onUpdate, 
             </div>
           ))}
         </div>
-      )}
-
-      {viewingDoc && (
-        <DocumentViewer document={viewingDoc} onClose={() => setViewingDoc(null)} mode="patient" />
       )}
     </div>
   );
