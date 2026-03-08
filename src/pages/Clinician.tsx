@@ -212,7 +212,7 @@ export default function Clinician() {
             <div className="flex items-center gap-4">
               <div className="flex gap-1">
                 {langOptions.map((l) => (
-                  <button key={l.code} onClick={() => setLang(l.code)}
+                  <button key={l.code} onClick={() => handleLangSwitch(l.code)} disabled={translating}
                     className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
                       lang === l.code ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
                     }`}>
