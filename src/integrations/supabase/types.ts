@@ -14,7 +14,157 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      audit_logs: {
+        Row: {
+          accessed_at: string
+          doctor_name: string
+          duration: string
+          expires_at: string
+          hospital: string
+          id: string
+          patient_id: string
+          purpose: string
+          status: string
+        }
+        Insert: {
+          accessed_at?: string
+          doctor_name: string
+          duration?: string
+          expires_at?: string
+          hospital: string
+          id?: string
+          patient_id: string
+          purpose: string
+          status?: string
+        }
+        Update: {
+          accessed_at?: string
+          doctor_name?: string
+          duration?: string
+          expires_at?: string
+          hospital?: string
+          id?: string
+          patient_id?: string
+          purpose?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          created_at: string
+          id: string
+          lang: string
+          name: string
+          patient_id: string
+          status: string
+          updated_at: string
+          upload_date: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lang?: string
+          name: string
+          patient_id: string
+          status?: string
+          updated_at?: string
+          upload_date: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lang?: string
+          name?: string
+          patient_id?: string
+          status?: string
+          updated_at?: string
+          upload_date?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patients: {
+        Row: {
+          age: number
+          allergies: string[] | null
+          blood: string
+          conditions: string[] | null
+          created_at: string
+          email: string
+          emergency_contacts: Json | null
+          gender: string
+          healthkey_id: string
+          id: string
+          medications: string[] | null
+          name: string
+          phone: string
+          privacy_toggles: Json | null
+          state: string
+          surgeries: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          age: number
+          allergies?: string[] | null
+          blood: string
+          conditions?: string[] | null
+          created_at?: string
+          email: string
+          emergency_contacts?: Json | null
+          gender: string
+          healthkey_id: string
+          id?: string
+          medications?: string[] | null
+          name: string
+          phone: string
+          privacy_toggles?: Json | null
+          state: string
+          surgeries?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          age?: number
+          allergies?: string[] | null
+          blood?: string
+          conditions?: string[] | null
+          created_at?: string
+          email?: string
+          emergency_contacts?: Json | null
+          gender?: string
+          healthkey_id?: string
+          id?: string
+          medications?: string[] | null
+          name?: string
+          phone?: string
+          privacy_toggles?: Json | null
+          state?: string
+          surgeries?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
