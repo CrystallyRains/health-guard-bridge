@@ -22,9 +22,16 @@ export default function PatientDashboard() {
   const refreshPatientData = (healthKeyId: string) => {
     getPatientById(healthKeyId)
       .then((freshData) => {
-        console.log("[Dashboard] Fresh patient data:", freshData);
+        console.log("[Dashboard] Full API response:", JSON.stringify(freshData, null, 2));
+        console.log("[Dashboard] Documents array:", JSON.stringify(freshData.documents, null, 2));
         setPatient(freshData);
-        setDocuments(freshData.documents || []);
+        const docs = freshData.documents || [];
+        // Deduplicate by docId
+        const uniqueDocs = docs.filter((d: any, i: number, arr: any[]) =>
+          arr.findIndex((x: any) => (x.docId || x.id) === (d.docId || d.id)) === i
+        );
+        console.log("[Dashboard] Unique docs count:", uniqueDocs.length);
+        setDocuments(uniqueDocs);
         localStorage.setItem("healthkey_patient", JSON.stringify(freshData));
       })
       .catch((err) => {
