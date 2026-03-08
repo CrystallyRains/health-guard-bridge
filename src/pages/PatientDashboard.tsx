@@ -21,10 +21,13 @@ export default function PatientDashboard() {
 
   useEffect(() => {
     const stored = localStorage.getItem("healthkey_patient");
-    if (!stored) {
+    const healthKeyId = localStorage.getItem("healthkey_patient_id");
+    if (!stored || !healthKeyId) {
       navigate("/patient-login", { replace: true });
       return;
     }
+
+    // Load cached data first for instant UI
     try {
       const parsed = JSON.parse(stored);
       setPatient(parsed);
@@ -33,7 +36,20 @@ export default function PatientDashboard() {
       navigate("/patient-login", { replace: true });
       return;
     }
-    setLoading(false);
+
+    // Then fetch fresh data from API
+    getPatientById(healthKeyId)
+      .then((freshData) => {
+        console.log("[Dashboard] Fresh patient data:", freshData);
+        setPatient(freshData);
+        setDocuments(freshData.documents || []);
+        localStorage.setItem("healthkey_patient", JSON.stringify(freshData));
+      })
+      .catch((err) => {
+        console.error("[Dashboard] Failed to refresh patient data:", err);
+        // Keep using cached data, don't redirect
+      })
+      .finally(() => setLoading(false));
   }, [navigate]);
 
   // Load audit logs when tab switches to access
