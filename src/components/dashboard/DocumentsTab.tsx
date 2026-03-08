@@ -26,7 +26,7 @@ export interface DocumentDisplay {
 
 interface Props {
   documents: DocumentDisplay[];
-  onAdd: (name: string, file?: File) => void;
+  onAdd: (name: string, file?: File) => Promise<void> | void;
   onUpdate: (docId: string, updates: { name?: string }) => void;
   onDelete: (docId: string) => void;
 }
