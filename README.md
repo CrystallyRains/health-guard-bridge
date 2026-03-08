@@ -11,7 +11,7 @@
 
 ## 🚨 The Problem
 
-India has **1.4 billion people** and fragmented medical records. In an emergency, a doctor treating an unconscious patient has **no way to access** their medical history - allergies, medications, or critical conditions.
+India has **1.4 billion people** and fragmented medical records. In an emergency, a doctor treating an unconscious patient has **no way to access** their medical history, allergies, medications, or critical conditions.
 
 ABHA/ABDM only works when hospitals are affiliated. Most Indian medical data sits in PDFs, scattered across hospitals, in Hindi, Marathi, Tamil, and Telugu, inaccessible when it matters most.
 
@@ -26,7 +26,7 @@ HealthKey is a **patient-controlled, AI-powered emergency medical access layer**
 - Patients register once and get a unique **HealthKey ID**
 - They upload their medical documents (PDFs in any Indian language)
 - In an emergency, a doctor enters the HealthKey ID and instantly gets an **AI-generated clinical summary** in their preferred language
-- The session **auto-expires in 30 minutes** — no permanent access granted
+- The session **auto-expires in 30 minutes** - no permanent access granted
 - Every access is logged in a **tamper-evident audit trail**
 - Patients control what doctors can see via **privacy toggles**
 
