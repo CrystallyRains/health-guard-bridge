@@ -19,6 +19,7 @@ interface PatientData {
   surgeries: { name: string; date: string }[];
   emergencyContacts: { name: string; relation: string; phone: string }[];
   privacyToggles: { allergies: boolean; medications: boolean; conditions: boolean; surgeries: boolean };
+  [key: string]: unknown;
 }
 
 interface Props {
