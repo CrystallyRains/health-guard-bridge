@@ -171,6 +171,7 @@ export default function Clinician() {
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+            </div>
           </div>
           {/* Progress bar */}
           <div className="max-w-5xl mx-auto mt-2">
