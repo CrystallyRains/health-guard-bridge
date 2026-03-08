@@ -257,7 +257,15 @@ export default function Clinician() {
           </div>
         </div>
 
-        <div className="pt-24 pb-16 px-4 max-w-5xl mx-auto">
+        <div className="pt-24 pb-16 px-4 max-w-5xl mx-auto relative">
+          {translating && (
+            <div className="absolute inset-0 z-10 bg-background/60 backdrop-blur-sm flex items-center justify-center rounded-lg">
+              <div className="flex items-center gap-3 glass-card p-4">
+                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm font-medium">Translating...</span>
+              </div>
+            </div>
+          )}
           {/* Critical Alert Banner */}
           {summary.criticalAlert && (
             <div className="flex items-center gap-3 bg-red-500/15 border border-red-500/40 rounded-lg p-4 mb-4">
