@@ -1,14 +1,6 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Award, Shield, Globe, Server, Database, Brain, MessageSquare, Lock, Zap, Cloud } from "lucide-react";
-
-const timeline = [
-  { year: "2024", org: "ISRO", desc: "Selected for space-grade data security architecture review" },
-  { year: "2025", org: "AHPI", desc: "Association of Healthcare Providers of India endorsement" },
-  { year: "2025", org: "NitiAayog", desc: "Recognized under Digital Health Innovation initiative" },
-  { year: "2026", org: "PMO Letter", desc: "Prime Minister's Office acknowledgment for healthcare innovation" },
-  { year: "2026", org: "MoHFW", desc: "Ministry of Health & Family Welfare approval for pilot deployment" },
-];
+import { Shield, Globe, Server, Database, Brain, MessageSquare, Lock, Zap, Cloud } from "lucide-react";
 
 export default function About() {
   return (
@@ -24,28 +16,6 @@ export default function About() {
         </div>
       </section>
 
-      {/* Timeline */}
-      <section className="py-16 px-4">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="section-title text-xl mb-10 text-center">Recognition Timeline</h2>
-          <div className="relative">
-            <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-border" />
-            {timeline.map((t, i) => (
-              <div key={t.org} className="relative pl-16 pb-10 last:pb-0">
-                <div className="absolute left-4 w-5 h-5 rounded-full bg-primary border-4 border-background" />
-                <div className="glass-card-hover p-5">
-                  <div className="flex items-center gap-3 mb-1">
-                    <Award className="h-4 w-4 text-primary" />
-                    <span className="font-mono text-xs text-primary">{t.year}</span>
-                    <span className="font-heading font-semibold">{t.org}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{t.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ABDM */}
       <section className="py-16 px-4 bg-card/30">
