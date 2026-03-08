@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { getPatientByUserId, getDocuments, getAuditLogs, updatePatient, createDocument, updateDocument, deleteDocument, deletePatient } from "@/lib/api";
-import type { PatientRecord, DocumentRecord, AuditLogRecord } from "@/lib/api";
+import { getPatientByUserId, getDocuments, updatePatient, createDocument, updateDocument, deleteDocument, deletePatient } from "@/lib/api";
+import type { PatientRecord, DocumentRecord } from "@/lib/api";
+import { fetchAuditLogs, fileToBase64, uploadDocument } from "@/lib/apiHelpers";
 import { KeyRound, LogOut, Heart, FileText, Search, Settings } from "lucide-react";
 import ProfileTab from "@/components/dashboard/ProfileTab";
 import DocumentsTab from "@/components/dashboard/DocumentsTab";
@@ -13,13 +14,22 @@ import { toast } from "sonner";
 
 type Tab = "profile" | "documents" | "access" | "settings";
 
+interface AuditLogEntry {
+  time: string;
+  doctor: string;
+  hospital: string;
+  purpose: string;
+  duration: string;
+  status: "Expired" | "Active" | "Pending";
+}
+
 export default function PatientDashboard() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [tab, setTab] = useState<Tab>("profile");
   const [patient, setPatient] = useState<PatientRecord | null>(null);
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLogRecord[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,12 +43,19 @@ export default function PatientDashboard() {
     const { patient: p } = await getPatientByUserId(user.id);
     if (p) {
       setPatient(p);
-      const [docsResult, logsResult] = await Promise.all([
+      const [docsResult] = await Promise.all([
         getDocuments(p.id),
-        getAuditLogs(p.id),
       ]);
       setDocuments(docsResult.documents);
-      setAuditLogs(logsResult.logs);
+
+      // Fetch audit logs from AWS API
+      try {
+        const { logs } = await fetchAuditLogs(p.healthkey_id);
+        setAuditLogs(logs);
+      } catch (err) {
+        console.error("Failed to fetch audit logs from API:", err);
+        setAuditLogs([]);
+      }
     }
     setLoading(false);
   };
@@ -60,14 +77,28 @@ export default function PatientDashboard() {
     let fileType: string | null = null;
     let fileSize: number | null = null;
 
-    // Upload file to storage if provided
+    // Upload to AWS API if file provided
     if (file) {
-      const path = `${user.id}/${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage.from("patient-documents").upload(path, file);
-      if (!uploadError) {
-        filePath = path;
-        fileType = file.type;
-        fileSize = file.size;
+      try {
+        const base64 = await fileToBase64(file);
+        const result = await uploadDocument({
+          healthKeyId: patient.healthkey_id,
+          fileName: file.name,
+          fileBase64: base64,
+          contentType: file.type,
+        });
+        // Also upload to storage for preview
+        const path = `${user.id}/${Date.now()}-${file.name}`;
+        const { error: uploadError } = await supabase.storage.from("patient-documents").upload(path, file);
+        if (!uploadError) {
+          filePath = path;
+          fileType = file.type;
+          fileSize = file.size;
+        }
+        toast.success(result.message || "Document uploaded and processed");
+      } catch (err: any) {
+        toast.error(err.message || "Failed to upload document");
+        return;
       }
     }
 
@@ -177,15 +208,6 @@ export default function PatientDashboard() {
     fileType: d.file_type,
   }));
 
-  const logsForTab = auditLogs.map(l => ({
-    time: new Date(l.accessed_at).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
-    doctor: l.doctor_name,
-    hospital: l.hospital,
-    purpose: l.purpose,
-    duration: l.duration,
-    status: (new Date(l.expires_at) < new Date() ? "Expired" : "Active") as "Expired" | "Active" | "Pending",
-  }));
-
   return (
     <div className="min-h-screen flex flex-col">
       <nav className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-border/50 h-16 flex items-center justify-between px-4 sm:px-8">
@@ -260,7 +282,7 @@ export default function PatientDashboard() {
             />
           )}
           {tab === "access" && (
-            <AccessLogTab auditLog={logsForTab} patient={patientForProfile} />
+            <AccessLogTab auditLog={auditLogs} patient={patientForProfile} />
           )}
           {tab === "settings" && (
             <SettingsTab
