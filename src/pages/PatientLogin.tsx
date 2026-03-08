@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import FingerprintScanner from "@/components/FingerprintScanner";
@@ -14,11 +14,12 @@ export default function PatientLogin() {
   const [bioSuccess, setBioSuccess] = useState(false);
 
   // If already logged in, redirect
-  const existing = localStorage.getItem("healthkey_patient");
-  if (existing) {
-    navigate("/patient/dashboard", { replace: true });
-    return null;
-  }
+  useEffect(() => {
+    const existing = localStorage.getItem("healthkey_patient");
+    if (existing) {
+      navigate("/patient/dashboard", { replace: true });
+    }
+  }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
