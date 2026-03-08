@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { clinicianTranslations } from "@/data/mockData";
 import { requestEmergencyAccess } from "@/lib/apiHelpers";
+import { api } from "@/config/api";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FingerprintScanner from "@/components/FingerprintScanner";
