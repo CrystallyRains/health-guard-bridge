@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FingerprintScanner from "@/components/FingerprintScanner";
-import { Lock, AlertTriangle, LogOut } from "lucide-react";
+import { Lock, AlertTriangle, LogOut, FileText, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
