@@ -19,6 +19,20 @@ export default function PatientDashboard() {
   const [loading, setLoading] = useState(true);
   const [auditLoading, setAuditLoading] = useState(false);
 
+  const refreshPatientData = (healthKeyId: string) => {
+    getPatientById(healthKeyId)
+      .then((freshData) => {
+        console.log("[Dashboard] Fresh patient data:", freshData);
+        setPatient(freshData);
+        setDocuments(freshData.documents || []);
+        localStorage.setItem("healthkey_patient", JSON.stringify(freshData));
+      })
+      .catch((err) => {
+        console.error("[Dashboard] Failed to refresh patient data:", err);
+      })
+      .finally(() => setLoading(false));
+  };
+
   useEffect(() => {
     const stored = localStorage.getItem("healthkey_patient");
     const healthKeyId = localStorage.getItem("healthkey_patient_id");
