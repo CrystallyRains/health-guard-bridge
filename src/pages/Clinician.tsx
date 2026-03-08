@@ -300,7 +300,7 @@ export default function Clinician() {
             <div className="flex items-center gap-3 bg-red-500/15 border border-red-500/40 rounded-lg p-4 mb-4">
               <span className="text-lg">🚨</span>
               <div>
-                <p className="text-sm font-semibold text-red-400">CRITICAL ALERT</p>
+                <p className="text-sm font-semibold text-red-400">{t.criticalAlert}</p>
                 <p className="text-sm text-red-300">{summary.criticalAlert}</p>
               </div>
             </div>
@@ -366,7 +366,7 @@ export default function Clinician() {
 
             {/* Emergency Notes */}
             <div className="glass-card p-5">
-              <h3 className="font-heading font-semibold text-sm mb-3">📋 Emergency Notes</h3>
+              <h3 className="font-heading font-semibold text-sm mb-3">📋 {t.emergencyNotes}</h3>
               {summary.emergencyNotes
                 ? <p className="text-sm">{summary.emergencyNotes}</p>
                 : <span className="text-muted-foreground text-sm">None recorded</span>}
@@ -377,7 +377,7 @@ export default function Clinician() {
               Array.isArray(summary.drugContraindications) ? summary.drugContraindications.length > 0 : true
             ) && (
               <div className="glass-card p-5 border-red-500/40 md:col-span-2">
-                <h3 className="font-heading font-semibold text-sm mb-3 text-red-400">💊 DRUGS TO AVOID</h3>
+                <h3 className="font-heading font-semibold text-sm mb-3 text-red-400">💊 {t.drugsToAvoid}</h3>
                 {Array.isArray(summary.drugContraindications) ? (
                   <div className="flex flex-wrap gap-2">
                     {summary.drugContraindications.map((d: string) => (
@@ -395,7 +395,7 @@ export default function Clinician() {
               Array.isArray(summary.labHighlights) ? summary.labHighlights.length > 0 : true
             ) && (
               <div className="glass-card p-5 border-purple-500/40 md:col-span-2">
-                <h3 className="font-heading font-semibold text-sm mb-3 text-purple-400">🧪 RECENT LAB VALUES</h3>
+                <h3 className="font-heading font-semibold text-sm mb-3 text-purple-400">🧪 {t.recentLabValues}</h3>
                 {Array.isArray(summary.labHighlights) ? (
                   <ul className="space-y-1">
                     {summary.labHighlights.map((l: string, i: number) => (
