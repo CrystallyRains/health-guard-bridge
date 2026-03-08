@@ -49,10 +49,6 @@ export default function PatientLogin() {
     }
   };
 
-  const handleTryDemo = () => {
-    setLoginId("HK-2847-NKGP");
-    toast.info("Demo HealthKey ID filled! Click Login to continue.");
-  };
 
   const handleBioLogin = () => {
     setScanning(true);
