@@ -241,7 +241,7 @@ export default function Clinician() {
                   <AlertDialogFooter>
                     <AlertDialogCancel className="btn-secondary">Cancel</AlertDialogCancel>
                     <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      onClick={() => { setPhase("form"); setTimeLeft(1800); setExpired(false); setResponseData(null); }}>
+                      onClick={() => { setPhase("form"); setTimeLeft(1800); setExpired(false); setResponseData(null); setRequestData(null); setEnglishSummary(null); setLang("EN"); }}>
                       End Session
                     </AlertDialogAction>
                   </AlertDialogFooter>
