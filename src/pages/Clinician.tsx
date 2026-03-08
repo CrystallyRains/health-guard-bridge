@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import { clinicianTranslations } from "@/data/mockData";
+import { clinicianTranslations, bloodGroupNames } from "@/data/mockData";
 import { requestEmergencyAccess } from "@/lib/apiHelpers";
 import { api } from "@/config/api";
+import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FingerprintScanner from "@/components/FingerprintScanner";
-import { Lock, AlertTriangle, LogOut } from "lucide-react";
+import { Lock, AlertTriangle, LogOut, FileText, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import {
   AlertDialog,
@@ -49,6 +50,14 @@ interface SummaryResponse {
   };
 }
 
+interface PatientDocument {
+  id: string;
+  name: string;
+  upload_date: string;
+  file_path: string | null;
+  file_type: string | null;
+}
+
 export default function Clinician() {
   const [phase, setPhase] = useState<Phase>("form");
   const [doctorName, setDoctorName] = useState("");
@@ -60,6 +69,7 @@ export default function Clinician() {
   const [responseData, setResponseData] = useState<SummaryResponse | null>(null);
   const [requestData, setRequestData] = useState<{ healthKeyId: string; doctorName: string; hospitalName: string; purpose: string } | null>(null);
   const [englishSummary, setEnglishSummary] = useState<SummaryResponse["summary"] | null>(null);
+  const [patientDocs, setPatientDocs] = useState<PatientDocument[]>([]);
 
   const [verifyStep, setVerifyStep] = useState(0);
   const [lang, setLang] = useState("EN");
@@ -69,6 +79,61 @@ export default function Clinician() {
   const [translating, setTranslating] = useState(false);
 
   const t = clinicianTranslations[lang];
+
+  // Fetch patient documents from Supabase when session starts
+  const fetchPatientDocuments = useCallback(async (healthKeyId: string) => {
+    try {
+      // First get the patient's internal ID from healthkey_id
+      const { data: patient } = await supabase
+        .from("patients")
+        .select("id")
+        .eq("healthkey_id", healthKeyId)
+        .maybeSingle();
+
+      if (!patient) return;
+
+      const { data: docs } = await supabase
+        .from("documents")
+        .select("id, name, upload_date, file_path, file_type")
+        .eq("patient_id", patient.id)
+        .order("upload_date", { ascending: false });
+
+      if (docs) setPatientDocs(docs);
+    } catch (err) {
+      console.error("[Clinician] Failed to fetch documents:", err);
+    }
+  }, []);
+
+  const handleViewDocument = async (doc: PatientDocument) => {
+    if (!doc.file_path) {
+      toast.error("Document file not available");
+      return;
+    }
+    try {
+      // Try fetching presigned URL from the AWS API
+      const healthKeyId = patientId.trim();
+      const res = await fetch(api.getDocumentUrl(healthKeyId, doc.id));
+      if (res.ok) {
+        const data = await res.json();
+        if (data.url) {
+          window.open(data.url, "_blank");
+          return;
+        }
+      }
+      // Fallback: try Supabase storage
+      const { data } = await supabase.storage
+        .from("medical-documents")
+        .createSignedUrl(doc.file_path, 300);
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, "_blank");
+      } else {
+        toast.error("Could not generate document URL");
+      }
+    } catch (err) {
+      console.error("[Clinician] Failed to view document:", err);
+      toast.error("Failed to open document");
+    }
+  };
 
   const startVerification = useCallback(async () => {
     setPhase("verifying");
@@ -95,6 +160,9 @@ export default function Clinician() {
       setEnglishSummary(response.summary);
       setLang("EN");
 
+      // Fetch patient documents
+      fetchPatientDocuments(reqData.healthKeyId);
+
       const expiresAt = new Date(response.expiresAt).getTime();
       const now = Date.now();
       const remainingSeconds = Math.max(0, Math.floor((expiresAt - now) / 1000));
@@ -110,7 +178,7 @@ export default function Clinician() {
       setPhase("form");
       setApiLoading(false);
     }
-  }, [patientId, doctorName, hospital, purpose]);
+  }, [patientId, doctorName, hospital, purpose, fetchPatientDocuments]);
 
   const handleLangSwitch = useCallback(async (newLang: string) => {
     if (newLang === lang) return;
@@ -124,7 +192,6 @@ export default function Clinician() {
     if (!requestData) return;
     setTranslating(true);
     try {
-      // Call API directly to ensure we get the full translated response
       const res = await fetch(api.emergencyAccess, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -137,7 +204,6 @@ export default function Clinician() {
       const data = await res.json();
       console.log("[LangSwitch] API response for", newLang, ":", JSON.stringify(data.summary, null, 2));
 
-      // Update ALL summary fields from the fresh translated response
       setResponseData((prev) => {
         if (!prev) return prev;
         return {
@@ -201,6 +267,14 @@ export default function Clinician() {
   const timerDanger = timeLeft < 300;
 
   const summary = responseData?.summary;
+
+  // Get translated blood group display name
+  const getBloodGroupDisplay = (bg: string) => {
+    const raw = bg?.replace(/[^A-Za-z+-]/g, "").toUpperCase(); // normalize e.g. "B+" 
+    const match = bloodGroupNames[raw];
+    if (match && match[lang]) return match[lang];
+    return bg || "—";
+  };
 
   if (phase === "verifying") {
     return (
@@ -270,7 +344,7 @@ export default function Clinician() {
                   <AlertDialogFooter>
                     <AlertDialogCancel className="btn-secondary">Cancel</AlertDialogCancel>
                     <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      onClick={() => { setPhase("form"); setTimeLeft(1800); setExpired(false); setResponseData(null); setRequestData(null); setEnglishSummary(null); setLang("EN"); }}>
+                      onClick={() => { setPhase("form"); setTimeLeft(1800); setExpired(false); setResponseData(null); setRequestData(null); setEnglishSummary(null); setPatientDocs([]); setLang("EN"); }}>
                       End Session
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -345,11 +419,13 @@ export default function Clinician() {
               </div>
             </div>
 
-            {/* Blood Group */}
+            {/* Blood Group — translated */}
             <div className="glass-card p-5 flex items-center justify-center">
               <div className="text-center">
                 <p className="text-xs text-muted-foreground mb-1">🩸 {t.bloodGroup}</p>
-                <p className="text-5xl font-heading font-bold text-red-400">{summary.bloodGroup || "—"}</p>
+                <p className="text-5xl font-heading font-bold text-red-400">
+                  {getBloodGroupDisplay(summary.bloodGroup)}
+                </p>
               </div>
             </div>
 
@@ -407,6 +483,34 @@ export default function Clinician() {
                 )}
               </div>
             )}
+
+            {/* Patient Documents */}
+            <div className="glass-card p-5 border-primary/20 md:col-span-2">
+              <h3 className="font-heading font-semibold text-sm mb-3 text-primary">📄 {t.patientDocuments}</h3>
+              {patientDocs.length > 0 ? (
+                <div className="space-y-2">
+                  {patientDocs.map((doc) => (
+                    <div key={doc.id} className="flex items-center justify-between bg-secondary/30 rounded-lg p-3">
+                      <div className="flex items-center gap-3">
+                        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium">{doc.name}</p>
+                          <p className="text-xs text-muted-foreground">{doc.upload_date}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleViewDocument(doc)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-xs font-medium"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" /> {t.viewDocument}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-muted-foreground text-sm">No documents uploaded</span>
+              )}
+            </div>
           </div>
 
           {/* Data Sources */}
@@ -428,7 +532,7 @@ export default function Clinician() {
                 <Lock className="h-12 w-12 text-destructive" />
               </div>
               <h2 className="font-heading font-bold text-2xl">{t.sessionExpired}</h2>
-              <button onClick={() => { setPhase("form"); setTimeLeft(1800); setExpired(false); setResponseData(null); setRequestData(null); setEnglishSummary(null); setLang("EN"); }} className="btn-secondary">
+              <button onClick={() => { setPhase("form"); setTimeLeft(1800); setExpired(false); setResponseData(null); setRequestData(null); setEnglishSummary(null); setPatientDocs([]); setLang("EN"); }} className="btn-secondary">
                 Back to Portal
               </button>
             </div>
