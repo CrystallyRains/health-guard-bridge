@@ -43,6 +43,8 @@ interface SummaryResponse {
     bloodGroup: string;
     emergencyNotes: string;
     dataSources: string[];
+    drugContraindications?: string | string[];
+    labHighlights?: string | string[];
   };
 }
 
