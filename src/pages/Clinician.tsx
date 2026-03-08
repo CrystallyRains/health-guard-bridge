@@ -50,7 +50,13 @@ interface SummaryResponse {
   };
 }
 
-export default function Clinician() {
+interface PatientDocument {
+  id: string;
+  name: string;
+  upload_date: string;
+  file_path: string | null;
+  file_type: string | null;
+}
   const [phase, setPhase] = useState<Phase>("form");
   const [doctorName, setDoctorName] = useState("");
   const [hospital, setHospital] = useState("");
