@@ -29,6 +29,9 @@ export interface DocumentRecord {
   upload_date: string;
   status: string;
   lang: string;
+  file_path: string | null;
+  file_type: string | null;
+  file_size: number | null;
   created_at: string;
   updated_at: string;
 }
