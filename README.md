@@ -1,4 +1,4 @@
-# 🏥 HealthKey — AI-Powered Emergency Medical Access for India
+# 🏥 HealthKey - AI-Powered Emergency Medical Access for India
 
 > **AI for Bharat Hackathon 2026** | Powered by AWS | Organized by Hack2skill
 > 
@@ -13,7 +13,7 @@
 
 India has **1.4 billion people** and fragmented medical records. In an emergency, a doctor treating an unconscious patient has **no way to access** their medical history — allergies, medications, or critical conditions.
 
-ABHA/ABDM only works when hospitals are affiliated. Most Indian medical data sits in PDFs, scattered across hospitals, in Hindi, Marathi, Tamil, and Telugu — inaccessible when it matters most.
+ABHA/ABDM only works when hospitals are affiliated. Most Indian medical data sits in PDFs, scattered across hospitals, in Hindi, Marathi, Tamil, and Telugu, inaccessible when it matters most.
 
 **HealthKey bridges this gap.**
 
@@ -113,7 +113,7 @@ Visit 👉 **[https://main.d3815zbuat35tz.amplifyapp.com](https://main.d3815zbua
    - **Phone:** 9876543210
    - **State:** Maharashtra
 3. Click **Register**
-4. 📋 **Copy the HealthKey ID** that appears — you'll need it in Step 4
+4. 📋 **Copy the HealthKey ID** that appears - you'll need it in Step 4
 
 ---
 
@@ -233,7 +233,7 @@ aws lambda update-function-code --function-name healthkey-upload --zip-file file
 
 ## 👥 Team
 
-**HealthKey** — AI for Bharat Hackathon 2026
+**HealthKey** - AI for Bharat Hackathon 2026
 
 | Role | Name |
 |---|---|
