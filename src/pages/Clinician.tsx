@@ -484,33 +484,6 @@ export default function Clinician() {
               </div>
             )}
 
-            {/* Patient Documents */}
-            <div className="glass-card p-5 border-primary/20 md:col-span-2">
-              <h3 className="font-heading font-semibold text-sm mb-3 text-primary">📄 {t.patientDocuments}</h3>
-              {patientDocs.length > 0 ? (
-                <div className="space-y-2">
-                  {patientDocs.map((doc) => (
-                    <div key={doc.id} className="flex items-center justify-between bg-secondary/30 rounded-lg p-3">
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <div>
-                          <p className="text-sm font-medium">{doc.name}</p>
-                          <p className="text-xs text-muted-foreground">{doc.upload_date}</p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleViewDocument(doc)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-xs font-medium"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" /> {t.viewDocument}
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <span className="text-muted-foreground text-sm">No documents uploaded</span>
-              )}
-            </div>
           </div>
 
           {/* Data Sources */}
