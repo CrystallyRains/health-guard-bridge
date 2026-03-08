@@ -57,12 +57,15 @@ export default function Clinician() {
   const [scanning, setScanning] = useState(false);
   const [bioSuccess, setBioSuccess] = useState(false);
   const [responseData, setResponseData] = useState<SummaryResponse | null>(null);
+  const [requestData, setRequestData] = useState<{ healthKeyId: string; doctorName: string; hospitalName: string; purpose: string } | null>(null);
+  const [englishSummary, setEnglishSummary] = useState<SummaryResponse["summary"] | null>(null);
 
   const [verifyStep, setVerifyStep] = useState(0);
   const [lang, setLang] = useState("EN");
   const [timeLeft, setTimeLeft] = useState(1800);
   const [expired, setExpired] = useState(false);
   const [apiLoading, setApiLoading] = useState(false);
+  const [translating, setTranslating] = useState(false);
 
   const t = clinicianTranslations[lang];
 
@@ -73,18 +76,24 @@ export default function Clinician() {
     setTimeout(() => setVerifyStep(1), 1500);
     setTimeout(() => setVerifyStep(2), 3000);
 
+    const reqData = {
+      healthKeyId: patientId.trim(),
+      doctorName,
+      hospitalName: hospital,
+      purpose,
+    };
+
     try {
       const response = await requestEmergencyAccess({
-        healthKeyId: patientId.trim(),
-        doctorName,
-        hospitalName: hospital,
-        purpose,
-        preferredLang: lang,
+        ...reqData,
+        preferredLang: "EN",
       });
 
       setResponseData(response);
+      setRequestData(reqData);
+      setEnglishSummary(response.summary);
+      setLang("EN");
 
-      // Calculate real countdown from expiresAt
       const expiresAt = new Date(response.expiresAt).getTime();
       const now = Date.now();
       const remainingSeconds = Math.max(0, Math.floor((expiresAt - now) / 1000));
@@ -100,7 +109,35 @@ export default function Clinician() {
       setPhase("form");
       setApiLoading(false);
     }
-  }, [patientId, doctorName, hospital, purpose, lang]);
+  }, [patientId, doctorName, hospital, purpose]);
+
+  const handleLangSwitch = useCallback(async (newLang: string) => {
+    if (newLang === lang) return;
+    setLang(newLang);
+
+    if (newLang === "EN" && englishSummary) {
+      setResponseData((prev) => prev ? { ...prev, summary: englishSummary } : prev);
+      return;
+    }
+
+    if (!requestData) return;
+    setTranslating(true);
+    try {
+      const response = await requestEmergencyAccess({
+        ...requestData,
+        preferredLang: newLang,
+      });
+      setResponseData((prev) => prev ? { ...prev, summary: response.summary } : prev);
+    } catch (err: any) {
+      toast.error("Translation failed. Showing English.");
+      setLang("EN");
+      if (englishSummary) {
+        setResponseData((prev) => prev ? { ...prev, summary: englishSummary } : prev);
+      }
+    } finally {
+      setTranslating(false);
+    }
+  }, [lang, requestData, englishSummary]);
 
   const handleRequestAccess = (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,7 +212,7 @@ export default function Clinician() {
             <div className="flex items-center gap-4">
               <div className="flex gap-1">
                 {langOptions.map((l) => (
-                  <button key={l.code} onClick={() => setLang(l.code)}
+                  <button key={l.code} onClick={() => handleLangSwitch(l.code)} disabled={translating}
                     className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
                       lang === l.code ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
                     }`}>
@@ -204,7 +241,7 @@ export default function Clinician() {
                   <AlertDialogFooter>
                     <AlertDialogCancel className="btn-secondary">Cancel</AlertDialogCancel>
                     <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      onClick={() => { setPhase("form"); setTimeLeft(1800); setExpired(false); setResponseData(null); }}>
+                      onClick={() => { setPhase("form"); setTimeLeft(1800); setExpired(false); setResponseData(null); setRequestData(null); setEnglishSummary(null); setLang("EN"); }}>
                       End Session
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -220,7 +257,15 @@ export default function Clinician() {
           </div>
         </div>
 
-        <div className="pt-24 pb-16 px-4 max-w-5xl mx-auto">
+        <div className="pt-24 pb-16 px-4 max-w-5xl mx-auto relative">
+          {translating && (
+            <div className="absolute inset-0 z-10 bg-background/60 backdrop-blur-sm flex items-center justify-center rounded-lg">
+              <div className="flex items-center gap-3 glass-card p-4">
+                <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm font-medium">Translating...</span>
+              </div>
+            </div>
+          )}
           {/* Critical Alert Banner */}
           {summary.criticalAlert && (
             <div className="flex items-center gap-3 bg-red-500/15 border border-red-500/40 rounded-lg p-4 mb-4">
@@ -354,7 +399,7 @@ export default function Clinician() {
                 <Lock className="h-12 w-12 text-destructive" />
               </div>
               <h2 className="font-heading font-bold text-2xl">{t.sessionExpired}</h2>
-              <button onClick={() => { setPhase("form"); setTimeLeft(1800); setExpired(false); setResponseData(null); }} className="btn-secondary">
+              <button onClick={() => { setPhase("form"); setTimeLeft(1800); setExpired(false); setResponseData(null); setRequestData(null); setEnglishSummary(null); setLang("EN"); }} className="btn-secondary">
                 Back to Portal
               </button>
             </div>
