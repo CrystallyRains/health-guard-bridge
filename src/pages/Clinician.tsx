@@ -377,7 +377,7 @@ export default function Clinician() {
               Array.isArray(summary.drugContraindications) ? summary.drugContraindications.length > 0 : true
             ) && (
               <div className="glass-card p-5 border-red-500/40 md:col-span-2">
-                <h3 className="font-heading font-semibold text-sm mb-3 text-red-400">💊 DRUGS TO AVOID</h3>
+                <h3 className="font-heading font-semibold text-sm mb-3 text-red-400">💊 {t.drugsToAvoid}</h3>
                 {Array.isArray(summary.drugContraindications) ? (
                   <div className="flex flex-wrap gap-2">
                     {summary.drugContraindications.map((d: string) => (
