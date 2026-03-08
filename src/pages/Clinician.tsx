@@ -57,12 +57,15 @@ export default function Clinician() {
   const [scanning, setScanning] = useState(false);
   const [bioSuccess, setBioSuccess] = useState(false);
   const [responseData, setResponseData] = useState<SummaryResponse | null>(null);
+  const [requestData, setRequestData] = useState<{ healthKeyId: string; doctorName: string; hospitalName: string; purpose: string } | null>(null);
+  const [englishSummary, setEnglishSummary] = useState<SummaryResponse["summary"] | null>(null);
 
   const [verifyStep, setVerifyStep] = useState(0);
   const [lang, setLang] = useState("EN");
   const [timeLeft, setTimeLeft] = useState(1800);
   const [expired, setExpired] = useState(false);
   const [apiLoading, setApiLoading] = useState(false);
+  const [translating, setTranslating] = useState(false);
 
   const t = clinicianTranslations[lang];
 
