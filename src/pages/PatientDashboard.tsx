@@ -58,13 +58,16 @@ export default function PatientDashboard() {
     if (!healthKeyId) return;
 
     try {
+      console.log("[Upload] Starting upload:", file.name, "size:", file.size, "type:", file.type);
       const base64 = await fileToBase64(file);
+      console.log("[Upload] Base64 length:", base64.length);
       const result = await uploadDocument({
         healthKeyId,
         fileName: file.name,
         fileBase64: base64,
         contentType: file.type,
       });
+      console.log("[Upload] API response:", result);
 
       const newDoc = {
         docId: result.docId,
@@ -83,7 +86,9 @@ export default function PatientDashboard() {
 
       toast.success(result.message || "Document processed successfully");
     } catch (err: any) {
+      console.error("[Upload] Error:", err);
       toast.error(err.message || "Failed to upload document");
+      throw err; // Re-throw so DocumentsTab animation handles it
     }
   };
 
