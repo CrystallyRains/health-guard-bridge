@@ -395,7 +395,7 @@ export default function Clinician() {
               Array.isArray(summary.labHighlights) ? summary.labHighlights.length > 0 : true
             ) && (
               <div className="glass-card p-5 border-purple-500/40 md:col-span-2">
-                <h3 className="font-heading font-semibold text-sm mb-3 text-purple-400">🧪 RECENT LAB VALUES</h3>
+                <h3 className="font-heading font-semibold text-sm mb-3 text-purple-400">🧪 {t.recentLabValues}</h3>
                 {Array.isArray(summary.labHighlights) ? (
                   <ul className="space-y-1">
                     {summary.labHighlights.map((l: string, i: number) => (
