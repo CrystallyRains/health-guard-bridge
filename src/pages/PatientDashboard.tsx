@@ -78,7 +78,7 @@ export default function PatientDashboard() {
         {/* Content */}
         <main className="flex-1 p-4 sm:p-8 pb-24 md:pb-8 overflow-auto">
           {tab === "profile" && (
-            <ProfileTab patient={patient} onUpdate={setPatient} />
+            <ProfileTab patient={patient} onUpdate={(updated) => setPatient(prev => ({ ...prev, ...updated }))} />
           )}
           {tab === "documents" && (
             <DocumentsTab documents={documents} onUpdate={setDocuments} />
