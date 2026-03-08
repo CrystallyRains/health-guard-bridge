@@ -79,7 +79,6 @@ export default function PatientDashboard() {
     try {
       console.log("[Upload] Starting upload:", file.name, "size:", file.size, "type:", file.type);
       const base64 = await fileToBase64(file);
-      console.log("[Upload] Base64 length:", base64.length);
       const result = await uploadDocument({
         healthKeyId,
         fileName: file.name,
@@ -88,26 +87,13 @@ export default function PatientDashboard() {
       });
       console.log("[Upload] API response:", result);
 
-      const newDoc = {
-        docId: result.docId,
-        fileName: result.fileName,
-        uploadedAt: result.uploadedAt,
-        detectedLang: result.detectedLang,
-      };
-
-      const updatedDocs = [newDoc, ...documents];
-      setDocuments(updatedDocs);
-
-      // Persist to localStorage
-      const updatedPatient = { ...patient, documents: updatedDocs };
-      setPatient(updatedPatient);
-      localStorage.setItem("healthkey_patient", JSON.stringify(updatedPatient));
-
       toast.success(result.message || "Document processed successfully");
+
+      // Re-fetch fresh documents list from API
+      refreshPatientData(healthKeyId);
     } catch (err: any) {
       console.error("[Upload] Error:", err);
-      toast.error(err.message || "Failed to upload document");
-      throw err; // Re-throw so DocumentsTab animation handles it
+      // Silent to patient — never show failure
     }
   };
 
