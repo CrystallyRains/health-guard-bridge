@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Upload, Trash2, Pencil, X, Check } from "lucide-react";
+import { Upload, Trash2, Pencil, X, Check, Eye } from "lucide-react";
 import { toast } from "sonner";
+import DocumentViewer from "@/components/DocumentViewer";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,11 +20,13 @@ export interface DocumentDisplay {
   date: string;
   status: "Processed" | "Processing" | "Failed";
   lang: string;
+  filePath?: string | null;
+  fileType?: string | null;
 }
 
 interface Props {
   documents: DocumentDisplay[];
-  onAdd: (name: string) => void;
+  onAdd: (name: string, file?: File) => void;
   onUpdate: (docId: string, updates: { name?: string }) => void;
   onDelete: (docId: string) => void;
 }
@@ -33,6 +36,7 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: P
   const [uploadStep, setUploadStep] = useState(0);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
+  const [viewingDoc, setViewingDoc] = useState<DocumentDisplay | null>(null);
 
   const simulateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -44,7 +48,7 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: P
     steps.forEach((s, i) => setTimeout(() => setUploadStep(s), (i + 1) * 1500));
     setTimeout(() => {
       setUploadingDoc(false);
-      onAdd(file.name);
+      onAdd(file.name, file);
       toast.success("Document processed successfully");
     }, 7000);
     e.target.value = "";
@@ -70,7 +74,7 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: P
         <h2 className="section-title text-xl">My Documents</h2>
         <label className="btn-primary text-sm py-2 cursor-pointer">
           <Upload className="h-4 w-4 inline mr-2" /> Upload
-          <input type="file" className="hidden" onChange={simulateUpload} />
+          <input type="file" className="hidden" onChange={simulateUpload} accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" />
         </label>
       </div>
 
@@ -98,29 +102,32 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: P
       ) : (
         <div className="space-y-3">
           {documents.map((doc, i) => (
-            <div key={doc.id} className="glass-card p-4 flex items-center justify-between">
-              <div className="flex-1 min-w-0">
+            <div key={doc.id} className="glass-card p-4 flex items-center justify-between group">
+              <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setViewingDoc(doc)}>
                 {editingIdx === i ? (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
                     <input className="input-field text-sm flex-1" value={editName} onChange={e => setEditName(e.target.value)} onKeyDown={e => e.key === "Enter" && saveRename()} autoFocus />
                     <button onClick={saveRename} className="text-primary"><Check className="h-4 w-4" /></button>
                     <button onClick={() => setEditingIdx(null)} className="text-muted-foreground"><X className="h-4 w-4" /></button>
                   </div>
                 ) : (
                   <>
-                    <p className="font-medium text-sm truncate">{doc.name}</p>
+                    <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">{doc.name}</p>
                     <p className="text-xs text-muted-foreground mt-1">{doc.date} · {doc.lang}</p>
                   </>
                 )}
               </div>
               <div className="flex items-center gap-2 ml-3">
                 <span className="tag-success text-xs">{doc.status} ✓</span>
-                <button onClick={() => startRename(i)} className="text-muted-foreground hover:text-primary p-1">
+                <button onClick={() => setViewingDoc(doc)} className="text-muted-foreground hover:text-primary p-1" title="View document">
+                  <Eye className="h-3.5 w-3.5" />
+                </button>
+                <button onClick={() => startRename(i)} className="text-muted-foreground hover:text-primary p-1" title="Rename">
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <button className="text-muted-foreground hover:text-destructive p-1">
+                    <button className="text-muted-foreground hover:text-destructive p-1" title="Delete">
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </AlertDialogTrigger>
@@ -141,6 +148,15 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: P
             </div>
           ))}
         </div>
+      )}
+
+      {/* Document Viewer Modal */}
+      {viewingDoc && (
+        <DocumentViewer
+          document={viewingDoc}
+          onClose={() => setViewingDoc(null)}
+          mode="patient"
+        />
       )}
     </div>
   );
