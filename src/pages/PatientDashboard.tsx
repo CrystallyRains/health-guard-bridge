@@ -233,7 +233,7 @@ export default function PatientDashboard() {
             <DocumentsTab
               documents={docsForTab}
               onAdd={handleAddDocument}
-              onUpdate={(docId, updates) => handleUpdateDocument(docId, updates)}
+              onUpdate={(docId, updates) => { handleUpdateDocument(docId, updates); }}
               onDelete={handleDeleteDocument}
             />
           )}
