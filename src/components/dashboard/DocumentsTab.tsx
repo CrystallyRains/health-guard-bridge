@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Upload, Trash2, Pencil, X, Check, Eye } from "lucide-react";
+import { Upload, Trash2, Pencil, X, Check, Eye, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import DocumentViewer from "@/components/DocumentViewer";
+import { api } from "@/config/api";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,16 +26,17 @@ export interface DocumentDisplay {
 
 interface Props {
   documents: DocumentDisplay[];
+  healthKeyId: string;
   onAdd: (name: string, file?: File) => Promise<void> | void;
   onUpdate: (docId: string, updates: { name?: string }) => void;
   onDelete: (docId: string) => void;
 }
 
-export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: Props) {
+export default function DocumentsTab({ documents, healthKeyId, onAdd, onUpdate, onDelete }: Props) {
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
-  const [viewingDoc, setViewingDoc] = useState<DocumentDisplay | null>(null);
+  const [viewingDocId, setViewingDocId] = useState<string | null>(null);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -51,6 +52,20 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: P
 
     // Always show success briefly then hide
     setTimeout(() => setUploadingDoc(false), 1200);
+  };
+
+  const handleViewDocument = async (docId: string) => {
+    setViewingDocId(docId);
+    try {
+      const res = await fetch(api.getDocumentUrl(healthKeyId, docId));
+      if (!res.ok) throw new Error("Failed to get document URL");
+      const data = await res.json();
+      window.open(data.url, "_blank");
+    } catch {
+      toast.error("Could not open document");
+    } finally {
+      setViewingDocId(null);
+    }
   };
 
   const startRename = (idx: number) => {
@@ -91,9 +106,9 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: P
         <div className="space-y-3">
           {documents.map((doc, i) => (
             <div key={doc.id} className="glass-card p-4 flex items-center justify-between group">
-              <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setViewingDoc(doc)}>
+              <div className="flex-1 min-w-0">
                 {editingIdx === i ? (
-                  <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center gap-2">
                     <input className="input-field text-sm flex-1" value={editName} onChange={e => setEditName(e.target.value)} onKeyDown={e => e.key === "Enter" && saveRename()} autoFocus />
                     <button onClick={saveRename} className="text-primary"><Check className="h-4 w-4" /></button>
                     <button onClick={() => setEditingIdx(null)} className="text-muted-foreground"><X className="h-4 w-4" /></button>
@@ -107,7 +122,14 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: P
               </div>
               <div className="flex items-center gap-2 ml-3">
                 <span className="tag-success text-xs">✓ Uploaded</span>
-                <button onClick={() => setViewingDoc(doc)} className="text-muted-foreground hover:text-primary p-1" title="View"><Eye className="h-3.5 w-3.5" /></button>
+                <button
+                  onClick={() => handleViewDocument(doc.id)}
+                  disabled={viewingDocId === doc.id}
+                  className="text-muted-foreground hover:text-primary p-1"
+                  title="View"
+                >
+                  {viewingDocId === doc.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
+                </button>
                 <button onClick={() => startRename(i)} className="text-muted-foreground hover:text-primary p-1" title="Rename"><Pencil className="h-3.5 w-3.5" /></button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -128,10 +150,6 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: P
             </div>
           ))}
         </div>
-      )}
-
-      {viewingDoc && (
-        <DocumentViewer document={viewingDoc} onClose={() => setViewingDoc(null)} mode="patient" />
       )}
     </div>
   );

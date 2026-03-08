@@ -254,6 +254,7 @@ export default function PatientDashboard() {
           {tab === "documents" && (
             <DocumentsTab
               documents={docsForTab}
+              healthKeyId={patientForProfile.id}
               onAdd={handleAddDocument}
               onUpdate={(docId, updates) => handleUpdateDocument(docId, updates)}
               onDelete={handleDeleteDocument}
