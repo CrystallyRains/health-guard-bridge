@@ -13,7 +13,7 @@ const steps = [
   { icon: UserPlus, step: "01", title: "Register", desc: "Create your HealthKey ID with biometric verification" },
   { icon: Upload, step: "02", title: "Upload Docs", desc: "Upload prescriptions, reports, discharge summaries in any language" },
   { icon: Stethoscope, step: "03", title: "Doctor Requests", desc: "Clinicians request emergency access with their credentials" },
-  { icon: Brain, step: "04", title: "AI Summary", desc: "AI generates a clinical summary from your consented data" },
+  { icon: Brain, step: "04", title: "AI Summary", desc: "Amazon Textract extracts text, Amazon Translate handles regional languages, and Amazon Bedrock generates a clinical summary — all in seconds" },
 ];
 
 export default function Landing() {

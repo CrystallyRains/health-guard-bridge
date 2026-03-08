@@ -77,8 +77,8 @@ export default function PatientLogin() {
           <form onSubmit={handleLogin} className="space-y-4">
             <input
               className="input-field"
-              placeholder="Email Address"
-              type="email"
+              placeholder="HealthKey ID or Email"
+              type="text"
               value={loginId}
               onChange={(e) => setLoginId(e.target.value)}
               required
