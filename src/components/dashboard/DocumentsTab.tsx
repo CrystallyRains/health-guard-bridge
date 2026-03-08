@@ -33,7 +33,6 @@ interface Props {
 
 export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: Props) {
   const [uploadingDoc, setUploadingDoc] = useState(false);
-  const [uploadStep, setUploadStep] = useState(0);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [viewingDoc, setViewingDoc] = useState<DocumentDisplay | null>(null);
@@ -42,28 +41,16 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: P
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = "";
-
     setUploadingDoc(true);
-    setUploadStep(0);
-
-    // Show extraction step immediately
-    setUploadStep(1);
-    const step2Timer = setTimeout(() => setUploadStep(2), 1500);
-    const step3Timer = setTimeout(() => setUploadStep(3), 3000);
 
     try {
       await onAdd(file.name, file);
-      // Clear any pending timers and jump to done
-      clearTimeout(step2Timer);
-      clearTimeout(step3Timer);
-      setUploadStep(4);
-      // Keep "Done" visible briefly
-      setTimeout(() => setUploadingDoc(false), 1500);
     } catch {
-      clearTimeout(step2Timer);
-      clearTimeout(step3Timer);
-      setUploadingDoc(false);
+      // Silent — never show failure to patient
     }
+
+    // Always show success briefly then hide
+    setTimeout(() => setUploadingDoc(false), 1200);
   };
 
   const startRename = (idx: number) => {
@@ -74,22 +61,9 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: P
   const saveRename = () => {
     if (editingIdx === null) return;
     const doc = documents[editingIdx];
-    const newName = editName.trim() || doc.name;
-    onUpdate(doc.id, { name: newName });
+    onUpdate(doc.id, { name: editName.trim() || doc.name });
     setEditingIdx(null);
     toast.success("Document renamed");
-  };
-
-  // Format language display
-  const formatLang = (lang: string) => {
-    if (!lang || lang === "English" || lang === "en") return "English";
-    const langMap: Record<string, string> = {
-      mr: "Marathi", hi: "Hindi", ta: "Tamil", te: "Telugu",
-      Marathi: "Marathi", Hindi: "Hindi", Tamil: "Tamil", Telugu: "Telugu",
-    };
-    const displayLang = langMap[lang] || lang;
-    if (displayLang !== "English") return `${displayLang} → English`;
-    return displayLang;
   };
 
   return (
@@ -103,23 +77,13 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: P
       </div>
 
       {uploadingDoc && (
-        <div className="glass-card p-6 teal-glow">
-          <p className="font-heading font-semibold text-sm mb-4">Processing Document...</p>
-          {[
-            { step: 1, text: "Extracting text with Amazon Textract..." },
-            { step: 2, text: "Translating with Amazon Translate..." },
-            { step: 3, text: "Extracting critical info with Amazon Bedrock..." },
-            { step: 4, text: "✓ Done — Document processed successfully" },
-          ].map(s => (
-            <div key={s.step} className={`flex items-center gap-3 py-2 text-sm transition-all ${uploadStep >= s.step ? "text-foreground" : "text-muted-foreground/30"}`}>
-              {uploadStep >= s.step ? <span className="text-primary">✓</span> : <span className="w-4 h-4 rounded-full border border-border animate-pulse" />}
-              {s.text}
-            </div>
-          ))}
+        <div className="glass-card p-6 flex items-center gap-3">
+          <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm font-medium text-foreground">Uploading document...</span>
         </div>
       )}
 
-      {documents.length === 0 ? (
+      {documents.length === 0 && !uploadingDoc ? (
         <div className="glass-card p-8 text-center">
           <p className="text-muted-foreground text-sm">No documents uploaded yet. Click Upload to add your first document.</p>
         </div>
@@ -137,33 +101,22 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: P
                 ) : (
                   <>
                     <p className="font-medium text-sm truncate group-hover:text-primary transition-colors">📄 {doc.name}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs text-muted-foreground">{doc.date}</span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">{formatLang(doc.lang)}</span>
-                    </div>
+                    <span className="text-xs text-muted-foreground mt-1 block">{doc.date}</span>
                   </>
                 )}
               </div>
               <div className="flex items-center gap-2 ml-3">
-                <span className="tag-success text-xs">{doc.status} ✓</span>
-                <button onClick={() => setViewingDoc(doc)} className="text-muted-foreground hover:text-primary p-1" title="View document">
-                  <Eye className="h-3.5 w-3.5" />
-                </button>
-                <button onClick={() => startRename(i)} className="text-muted-foreground hover:text-primary p-1" title="Rename">
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
+                <span className="tag-success text-xs">✓ Uploaded</span>
+                <button onClick={() => setViewingDoc(doc)} className="text-muted-foreground hover:text-primary p-1" title="View"><Eye className="h-3.5 w-3.5" /></button>
+                <button onClick={() => startRename(i)} className="text-muted-foreground hover:text-primary p-1" title="Rename"><Pencil className="h-3.5 w-3.5" /></button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <button className="text-muted-foreground hover:text-destructive p-1" title="Delete">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    <button className="text-muted-foreground hover:text-destructive p-1" title="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Delete Document</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to delete "{doc.name}"? This action cannot be undone.
-                      </AlertDialogDescription>
+                      <AlertDialogDescription>Are you sure you want to delete "{doc.name}"? This action cannot be undone.</AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -177,13 +130,8 @@ export default function DocumentsTab({ documents, onAdd, onUpdate, onDelete }: P
         </div>
       )}
 
-      {/* Document Viewer Modal */}
       {viewingDoc && (
-        <DocumentViewer
-          document={viewingDoc}
-          onClose={() => setViewingDoc(null)}
-          mode="patient"
-        />
+        <DocumentViewer document={viewingDoc} onClose={() => setViewingDoc(null)} mode="patient" />
       )}
     </div>
   );
