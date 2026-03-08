@@ -1,14 +1,6 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { Award, Shield, Globe, Server, Database, Brain, MessageSquare, Lock, Zap, Cloud } from "lucide-react";
-
-const timeline = [
-  { year: "2024", org: "ISRO", desc: "Selected for space-grade data security architecture review" },
-  { year: "2025", org: "AHPI", desc: "Association of Healthcare Providers of India endorsement" },
-  { year: "2025", org: "NitiAayog", desc: "Recognized under Digital Health Innovation initiative" },
-  { year: "2026", org: "PMO Letter", desc: "Prime Minister's Office acknowledgment for healthcare innovation" },
-  { year: "2026", org: "MoHFW", desc: "Ministry of Health & Family Welfare approval for pilot deployment" },
-];
+import { Shield, Globe, Server, Database, Brain, MessageSquare, Lock, Zap, Cloud } from "lucide-react";
 
 export default function About() {
   return (
