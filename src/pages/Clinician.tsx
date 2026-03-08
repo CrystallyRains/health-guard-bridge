@@ -143,7 +143,34 @@ export default function Clinician() {
               <div className={`font-mono font-bold text-lg ${timerDanger ? "text-red-400 animate-pulse" : "text-primary"}`}>
                 {formatTime(timeLeft)}
               </div>
-            </div>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/20 text-destructive hover:bg-destructive/30 transition-colors text-xs font-medium">
+                    <LogOut className="h-3.5 w-3.5" />
+                    End Session
+                  </button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="glass-card border-destructive/30">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                      <AlertTriangle className="h-5 w-5" />
+                      End Emergency Session?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will immediately revoke your access to the patient's medical summary. This action cannot be undone and will be logged in the patient's access history.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel className="btn-secondary">Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      onClick={() => { setPhase("form"); setTimeLeft(1800); setExpired(false); }}
+                    >
+                      End Session
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
           </div>
           {/* Progress bar */}
           <div className="max-w-5xl mx-auto mt-2">
