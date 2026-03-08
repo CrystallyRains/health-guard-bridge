@@ -178,7 +178,7 @@ export default function Clinician() {
       setPhase("form");
       setApiLoading(false);
     }
-  }, [patientId, doctorName, hospital, purpose, fetchPatientDocuments]);
+  }, [patientId, doctorName, hospital, purpose]);
 
   const handleLangSwitch = useCallback(async (newLang: string) => {
     if (newLang === lang) return;
