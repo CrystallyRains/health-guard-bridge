@@ -11,7 +11,7 @@
 
 ## 🚨 The Problem
 
-India has **1.4 billion people** and fragmented medical records. In an emergency, a doctor treating an unconscious patient has **no way to access** their medical history — allergies, medications, or critical conditions.
+India has **1.4 billion people** and fragmented medical records. In an emergency, a doctor treating an unconscious patient has **no way to access** their medical history - allergies, medications, or critical conditions.
 
 ABHA/ABDM only works when hospitals are affiliated. Most Indian medical data sits in PDFs, scattered across hospitals, in Hindi, Marathi, Tamil, and Telugu, inaccessible when it matters most.
 
