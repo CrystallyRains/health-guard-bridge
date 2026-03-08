@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import FingerprintScanner from "@/components/FingerprintScanner";
-import { KeyRound, Sparkles } from "lucide-react";
+import { KeyRound } from "lucide-react";
 import { getPatientById, getPatientByPhone } from "@/lib/apiHelpers";
 import { toast } from "sonner";
 
