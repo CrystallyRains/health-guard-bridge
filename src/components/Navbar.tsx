@@ -19,11 +19,6 @@ export default function Navbar() {
           </Link>
 
           <div className="hidden md:flex items-center gap-3">
-            {isLanding && (
-              <Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors px-4 py-2 text-sm">
-                How It Works
-              </Link>
-            )}
             <Link to="/patient-login" className="btn-secondary text-sm py-2">
               Patient Login
             </Link>
@@ -40,11 +35,6 @@ export default function Navbar() {
 
       {mobileOpen && (
         <div className="md:hidden glass-card border-t border-border/50 p-4 space-y-3">
-          {isLanding && (
-            <Link to="/about" className="block text-muted-foreground hover:text-foreground py-2" onClick={() => setMobileOpen(false)}>
-              How It Works
-            </Link>
-          )}
           <Link to="/patient-login" className="block btn-secondary text-sm py-2 text-center" onClick={() => setMobileOpen(false)}>
             Patient Login
           </Link>
