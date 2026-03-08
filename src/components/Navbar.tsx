@@ -19,11 +19,6 @@ export default function Navbar() {
           </Link>
 
           <div className="hidden md:flex items-center gap-3">
-            {isLanding && (
-              <Link to="/about" className="text-muted-foreground hover:text-foreground transition-colors px-4 py-2 text-sm">
-                How It Works
-              </Link>
-            )}
             <Link to="/patient-login" className="btn-secondary text-sm py-2">
               Patient Login
             </Link>
