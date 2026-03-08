@@ -10,6 +10,17 @@ export const indianStates = [
 
 export const bloodGroups = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
 
+export const bloodGroupNames: Record<string, Record<string, string>> = {
+  "A+":  { EN: "A Positive (A+)",  HI: "ए पॉजिटिव (A+)",  MR: "ए पॉझिटिव्ह (A+)",  TA: "ஏ பாசிட்டிவ் (A+)",  TE: "ఏ పాజిటివ్ (A+)" },
+  "A-":  { EN: "A Negative (A-)",  HI: "ए नेगेटिव (A-)",  MR: "ए नेगेटिव्ह (A-)",  TA: "ஏ நெகட்டிவ் (A-)",  TE: "ఏ నెగటివ్ (A-)" },
+  "B+":  { EN: "B Positive (B+)",  HI: "बी पॉजिटिव (B+)",  MR: "बी पॉझिटिव्ह (B+)",  TA: "பி பாசிட்டிவ் (B+)",  TE: "బి పాజిటివ్ (B+)" },
+  "B-":  { EN: "B Negative (B-)",  HI: "बी नेगेटिव (B-)",  MR: "बी नेगेटिव्ह (B-)",  TA: "பி நெகட்டிவ் (B-)",  TE: "బి నెగటివ్ (B-)" },
+  "O+":  { EN: "O Positive (O+)",  HI: "ओ पॉजिटिव (O+)",  MR: "ओ पॉझिटिव्ह (O+)",  TA: "ஓ பாசிட்டிவ் (O+)",  TE: "ఓ పాజిటివ్ (O+)" },
+  "O-":  { EN: "O Negative (O-)",  HI: "ओ नेगेटिव (O-)",  MR: "ओ नेगेटिव्ह (O-)",  TA: "ஓ நெகட்டிவ் (O-)",  TE: "ఓ నెగటివ్ (O-)" },
+  "AB+": { EN: "AB Positive (AB+)", HI: "एबी पॉजिटिव (AB+)", MR: "एबी पॉझिटिव्ह (AB+)", TA: "ஏபி பாசிட்டிவ் (AB+)", TE: "ఏబి పాజిటివ్ (AB+)" },
+  "AB-": { EN: "AB Negative (AB-)", HI: "एबी नेगेटिव (AB-)", MR: "एबी नेगेटिव्ह (AB-)", TA: "ஏபி நெகட்டிவ் (AB-)", TE: "ఏబి నెగటివ్ (AB-)" },
+};
+
 export const clinicianTranslations: Record<string, Record<string, string>> = {
   EN: {
     allergies: "Allergies",
@@ -22,6 +33,8 @@ export const clinicianTranslations: Record<string, Record<string, string>> = {
     criticalAlert: "CRITICAL ALERT",
     drugsToAvoid: "DRUGS TO AVOID",
     recentLabValues: "RECENT LAB VALUES",
+    patientDocuments: "Patient Documents",
+    viewDocument: "View",
     warning: "Critical-Only View · Full records not accessible · Sourced from patient-consented data",
     sessionExpired: "Session Expired. Access has been revoked. This event has been logged.",
   },
@@ -36,6 +49,8 @@ export const clinicianTranslations: Record<string, Record<string, string>> = {
     criticalAlert: "गंभीर चेतावनी",
     drugsToAvoid: "बचने योग्य दवाइयाँ",
     recentLabValues: "हाल की लैब रिपोर्ट",
+    patientDocuments: "रोगी के दस्तावेज़",
+    viewDocument: "देखें",
     warning: "केवल गंभीर जानकारी · पूर्ण रिकॉर्ड उपलब्ध नहीं · रोगी की सहमति से प्राप्त डेटा",
     sessionExpired: "सत्र समाप्त। पहुँच रद्द कर दी गई है। यह घटना लॉग की गई है।",
   },
@@ -50,6 +65,8 @@ export const clinicianTranslations: Record<string, Record<string, string>> = {
     criticalAlert: "गंभीर सूचना",
     drugsToAvoid: "टाळावयाची औषधे",
     recentLabValues: "अलीकडील लॅब रिपोर्ट",
+    patientDocuments: "रुग्णाचे दस्तऐवज",
+    viewDocument: "पहा",
     warning: "फक्त गंभीर माहिती · पूर्ण नोंदी उपलब्ध नाहीत · रुग्णाच्या संमतीने मिळवलेला डेटा",
     sessionExpired: "सत्र संपले. प्रवेश रद्द करण्यात आला आहे. ही घटना नोंदवली गेली आहे.",
   },
@@ -64,6 +81,8 @@ export const clinicianTranslations: Record<string, Record<string, string>> = {
     criticalAlert: "முக்கிய எச்சரிக்கை",
     drugsToAvoid: "தவிர்க்க வேண்டிய மருந்துகள்",
     recentLabValues: "சமீபத்திய ஆய்வக மதிப்புகள்",
+    patientDocuments: "நோயாளி ஆவணங்கள்",
+    viewDocument: "காண்க",
     warning: "முக்கியமான மட்டும் · முழு பதிவுகள் கிடைக்காது · நோயாளி ஒப்புதல் தரவு",
     sessionExpired: "அமர்வு முடிந்தது. அணுகல் ரத்து செய்யப்பட்டது. இந்த நிகழ்வு பதிவு செய்யப்பட்டது.",
   },
@@ -78,6 +97,8 @@ export const clinicianTranslations: Record<string, Record<string, string>> = {
     criticalAlert: "తీవ్ర హెచ్చరిక",
     drugsToAvoid: "నివారించాల్సిన మందులు",
     recentLabValues: "ఇటీవలి ల్యాబ్ విలువలు",
+    patientDocuments: "రోగి పత్రాలు",
+    viewDocument: "చూడండి",
     warning: "క్లిష్టమైన మాత్రమే · పూర్తి రికార్డులు అందుబాటులో లేవు · రోగి సమ్మతి డేటా",
     sessionExpired: "సెషన్ ముగిసింది. యాక్సెస్ రద్దు చేయబడింది. ఈ సంఘటన లాగ్ చేయబడింది.",
   },
