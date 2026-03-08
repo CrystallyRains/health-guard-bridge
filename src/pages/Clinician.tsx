@@ -60,6 +60,9 @@ export default function Clinician() {
     }
     setPatientData(patient);
 
+    // Fetch patient documents
+    const { documents } = await getDocuments(patient.id);
+    setPatientDocs(documents);
     setPhase("verifying");
     setVerifyStep(0);
     setTimeout(() => setVerifyStep(1), 1500);
