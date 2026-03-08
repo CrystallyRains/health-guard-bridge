@@ -399,7 +399,7 @@ export default function Clinician() {
                 <Lock className="h-12 w-12 text-destructive" />
               </div>
               <h2 className="font-heading font-bold text-2xl">{t.sessionExpired}</h2>
-              <button onClick={() => { setPhase("form"); setTimeLeft(1800); setExpired(false); setResponseData(null); }} className="btn-secondary">
+              <button onClick={() => { setPhase("form"); setTimeLeft(1800); setExpired(false); setResponseData(null); setRequestData(null); setEnglishSummary(null); setLang("EN"); }} className="btn-secondary">
                 Back to Portal
               </button>
             </div>
