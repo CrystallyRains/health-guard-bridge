@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { fetchAuditLogs, uploadDocument, fileToBase64 } from "@/lib/apiHelpers";
+import { fetchAuditLogs, uploadDocument, fileToBase64, getPatientById } from "@/lib/apiHelpers";
 import { KeyRound, LogOut, Heart, FileText, Search, Settings } from "lucide-react";
 import ProfileTab from "@/components/dashboard/ProfileTab";
 import DocumentsTab from "@/components/dashboard/DocumentsTab";
