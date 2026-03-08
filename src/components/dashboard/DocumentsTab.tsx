@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Upload, Trash2, Pencil, X, Check, Eye } from "lucide-react";
+import { Upload, Trash2, Pencil, X, Check, Eye, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import DocumentViewer from "@/components/DocumentViewer";
+import { api } from "@/config/api";
 import {
   AlertDialog,
   AlertDialogAction,
