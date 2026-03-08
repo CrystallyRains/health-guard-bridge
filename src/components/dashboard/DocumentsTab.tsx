@@ -54,6 +54,20 @@ export default function DocumentsTab({ documents, healthKeyId, onAdd, onUpdate, 
     setTimeout(() => setUploadingDoc(false), 1200);
   };
 
+  const handleViewDocument = async (docId: string) => {
+    setViewingDocId(docId);
+    try {
+      const res = await fetch(api.getDocumentUrl(healthKeyId, docId));
+      if (!res.ok) throw new Error("Failed to get document URL");
+      const data = await res.json();
+      window.open(data.url, "_blank");
+    } catch {
+      toast.error("Could not open document");
+    } finally {
+      setViewingDocId(null);
+    }
+  };
+
   const startRename = (idx: number) => {
     setEditingIdx(idx);
     setEditName(documents[idx].name);
