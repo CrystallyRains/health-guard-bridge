@@ -3,7 +3,18 @@ import { mockPatient, clinicianTranslations } from "@/data/mockData";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FingerprintScanner from "@/components/FingerprintScanner";
-import { Lock, AlertTriangle } from "lucide-react";
+import { Lock, AlertTriangle, LogOut } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 type Phase = "form" | "verifying" | "summary";
 
