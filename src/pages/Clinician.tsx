@@ -300,7 +300,7 @@ export default function Clinician() {
             <div className="flex items-center gap-3 bg-red-500/15 border border-red-500/40 rounded-lg p-4 mb-4">
               <span className="text-lg">🚨</span>
               <div>
-                <p className="text-sm font-semibold text-red-400">CRITICAL ALERT</p>
+                <p className="text-sm font-semibold text-red-400">{t.criticalAlert}</p>
                 <p className="text-sm text-red-300">{summary.criticalAlert}</p>
               </div>
             </div>
