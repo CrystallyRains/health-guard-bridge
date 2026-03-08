@@ -73,60 +73,8 @@ export default function Clinician() {
 
   const t = clinicianTranslations[lang];
 
-  // Fetch patient documents from Supabase when session starts
-  const fetchPatientDocuments = useCallback(async (healthKeyId: string) => {
-    try {
-      // First get the patient's internal ID from healthkey_id
-      const { data: patient } = await supabase
-        .from("patients")
-        .select("id")
-        .eq("healthkey_id", healthKeyId)
-        .maybeSingle();
 
-      if (!patient) return;
 
-      const { data: docs } = await supabase
-        .from("documents")
-        .select("id, name, upload_date, file_path, file_type")
-        .eq("patient_id", patient.id)
-        .order("upload_date", { ascending: false });
-
-      if (docs) setPatientDocs(docs);
-    } catch (err) {
-      console.error("[Clinician] Failed to fetch documents:", err);
-    }
-  }, []);
-
-  const handleViewDocument = async (doc: PatientDocument) => {
-    if (!doc.file_path) {
-      toast.error("Document file not available");
-      return;
-    }
-    try {
-      // Try fetching presigned URL from the AWS API
-      const healthKeyId = patientId.trim();
-      const res = await fetch(api.getDocumentUrl(healthKeyId, doc.id));
-      if (res.ok) {
-        const data = await res.json();
-        if (data.url) {
-          window.open(data.url, "_blank");
-          return;
-        }
-      }
-      // Fallback: try Supabase storage
-      const { data } = await supabase.storage
-        .from("medical-documents")
-        .createSignedUrl(doc.file_path, 300);
-      if (data?.signedUrl) {
-        window.open(data.signedUrl, "_blank");
-      } else {
-        toast.error("Could not generate document URL");
-      }
-    } catch (err) {
-      console.error("[Clinician] Failed to view document:", err);
-      toast.error("Failed to open document");
-    }
-  };
 
   const startVerification = useCallback(async () => {
     setPhase("verifying");
